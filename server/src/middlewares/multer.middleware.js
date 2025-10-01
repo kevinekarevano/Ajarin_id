@@ -17,6 +17,31 @@ const imageFilter = (req, file, cb) => {
   }
 };
 
+// File filter untuk materials (document, image only - video via link)
+const materialFilter = (req, file, cb) => {
+  // Allowed file types for course materials
+  const allowedTypes = {
+    // Images
+    "image/jpeg": true,
+    "image/jpg": true,
+    "image/png": true,
+    "image/gif": true,
+    "image/webp": true,
+
+    // Documents only (no video files)
+    "application/pdf": true,
+    "application/msword": true,
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+    "text/plain": true,
+  };
+
+  if (allowedTypes[file.mimetype]) {
+    return cb(null, true);
+  } else {
+    cb(new Error("File type not supported. Allowed: images, videos (mp4, webm, avi), documents (pdf, doc, docx, ppt, pptx, txt), archives (zip, rar)"));
+  }
+};
+
 // File filter untuk semua jenis file
 const allFileFilter = (req, file, cb) => {
   // Accept all file types
@@ -38,6 +63,16 @@ export const upload = {
     multer({
       ...baseConfig,
       fileFilter: imageFilter,
+    }).single(fieldName),
+
+  // Single material upload (video, document, image)
+  singleMaterial: (fieldName) =>
+    multer({
+      ...baseConfig,
+      fileFilter: materialFilter,
+      limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB for videos and large documents
+      },
     }).single(fieldName),
 
   // Multiple files upload (dinamis)

@@ -214,11 +214,6 @@ export const updateCourse = async (req, res) => {
       });
     }
 
-    // Debug logs
-    console.log("Course mentor_id:", course.mentor_id.toString());
-    console.log("Current user ID:", mentorId.toString());
-    console.log("User object:", req.user);
-
     // Check if user is the mentor of this course
     if (course.mentor_id.toString() !== mentorId.toString()) {
       return res.status(403).json({

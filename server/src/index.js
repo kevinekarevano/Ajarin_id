@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import courseRoutes from "./routes/course.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
+import materialRoutes from "./routes/material.routes.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/materials", materialRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -52,6 +54,15 @@ app.get("/", (req, res) => {
         checkEnrollment: "GET /api/enrollments/check/:courseId",
         courseStudents: "GET /api/enrollments/course/:courseId/students",
         mentorOverview: "GET /api/enrollments/mentor/overview",
+      },
+      materials: {
+        getCourseMaterials: "GET /api/materials/course/:courseId",
+        getMaterial: "GET /api/materials/:materialId",
+        createMaterial: "POST /api/materials",
+        myMaterials: "GET /api/materials/mentor/my-materials",
+        updateMaterial: "PUT /api/materials/:materialId",
+        deleteMaterial: "DELETE /api/materials/:materialId",
+        reorderMaterials: "PATCH /api/materials/course/:courseId/reorder",
       },
     },
   });
