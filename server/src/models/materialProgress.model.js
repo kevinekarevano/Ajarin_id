@@ -3,10 +3,10 @@ import mongoose from "mongoose";
 const materialProgressSchema = new mongoose.Schema(
   {
     // References
-    enrollment_id: {
+    user_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Enrollment",
-      required: [true, "Enrollment ID is required"],
+      ref: "User",
+      required: [true, "User ID is required"],
     },
 
     material_id: {
@@ -15,320 +15,295 @@ const materialProgressSchema = new mongoose.Schema(
       required: [true, "Material ID is required"],
     },
 
-    learner_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "Learner ID is required"],
-    },
-
     course_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
       required: [true, "Course ID is required"],
     },
 
-    // Progress Status
-    status: {
-      type: String,
-      enum: ["not_started", "in_progress", "completed"],
-      default: "not_started",
+    // Simple Progress Status - Just completed or not
+    is_completed: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
 
-    // Progress Details
-    progress_percentage: {
+    // Timestamps
+    marked_completed_at: {
+      type: Date,
+      default: null,
+    },
+
+    // Optional: Simple rating system
+    rating: {
       type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
+      min: 1,
+      max: 5,
+      default: null,
     },
 
-    time_spent_minutes: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
-    // Video/Content specific tracking
-    last_position: {
-      type: Number, // For videos: seconds, for documents: page/scroll position
-      default: 0,
-    },
-
-    // Quiz/Assignment specific
-    quiz_attempts: [
-      {
-        attempt_date: {
-          type: Date,
-          default: Date.now,
-        },
-        score: {
-          type: Number,
-          min: 0,
-          max: 100,
-        },
-        answers: [
-          {
-            question_index: Number,
-            selected_option: Number,
-            is_correct: Boolean,
-            time_taken: Number, // seconds
-          },
-        ],
-        time_taken_minutes: Number,
-        passed: Boolean,
-      },
-    ],
-
-    assignment_submission: {
-      submitted_at: Date,
-      submission_type: {
-        type: String,
-        enum: ["file", "text", "url"],
-      },
-      submission_content: String, // File URL, text content, or URL
-      file_info: {
-        public_id: String,
-        url: String,
-        file_name: String,
-        file_size: Number,
-      },
-      grade: {
-        type: Number,
-        min: 0,
-        max: 100,
-      },
-      feedback: String,
-      graded_at: Date,
-      graded_by: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    },
-
-    // Interaction tracking
-    bookmarks: [
-      {
-        position: Number,
-        note: String,
-        created_at: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-
-    notes: {
+    feedback: {
       type: String,
-      maxlength: [2000, "Notes cannot exceed 2000 characters"],
+      maxlength: [500, "Feedback cannot exceed 500 characters"],
       default: "",
     },
 
     // Timestamps
-    started_at: {
+    created_at: {
       type: Date,
-      default: null,
+      default: Date.now,
     },
 
-    completed_at: {
-      type: Date,
-      default: null,
-    },
-
-    last_accessed: {
+    updated_at: {
       type: Date,
       default: Date.now,
     },
   },
   {
-    timestamps: true,
+    timestamps: false, // Using manual timestamps
   }
 );
 
-// Indexes
-materialProgressSchema.index({ enrollment_id: 1 });
+// Indexes for performance
+materialProgressSchema.index({ user_id: 1 });
 materialProgressSchema.index({ material_id: 1 });
-materialProgressSchema.index({ learner_id: 1 });
 materialProgressSchema.index({ course_id: 1 });
-materialProgressSchema.index({ status: 1 });
-materialProgressSchema.index({ learner_id: 1, course_id: 1 });
-materialProgressSchema.index({ learner_id: 1, material_id: 1 }, { unique: true });
+materialProgressSchema.index({ user_id: 1, course_id: 1 });
+materialProgressSchema.index({ user_id: 1, material_id: 1 }, { unique: true });
+materialProgressSchema.index({ is_completed: 1 });
 
-// Pre-save middleware to handle status changes
+// Compound index for course progress queries
+materialProgressSchema.index({
+  user_id: 1,
+  course_id: 1,
+  is_completed: 1,
+});
+
+// Pre-save middleware
 materialProgressSchema.pre("save", function (next) {
-  // Set started_at when first accessed
-  if (this.isModified("status") && this.status !== "not_started" && !this.started_at) {
-    this.started_at = new Date();
+  this.updated_at = new Date();
+
+  // Set completed timestamp when marked as completed
+  if (this.is_completed && !this.marked_completed_at) {
+    this.marked_completed_at = new Date();
   }
 
-  // Set completed_at when completed
-  if (this.isModified("status") && this.status === "completed" && !this.completed_at) {
-    this.completed_at = new Date();
+  // Clear completed timestamp if unmarked
+  if (!this.is_completed && this.marked_completed_at) {
+    this.marked_completed_at = null;
   }
-
-  // Auto-complete based on progress percentage
-  if (this.isModified("progress_percentage") && this.progress_percentage >= 100 && this.status !== "completed") {
-    this.status = "completed";
-    this.completed_at = new Date();
-  }
-
-  // Update last_accessed
-  this.last_accessed = new Date();
 
   next();
 });
 
 // Instance methods
-materialProgressSchema.methods.markAsStarted = function () {
-  if (this.status === "not_started") {
-    this.status = "in_progress";
-    this.started_at = new Date();
-  }
-  this.last_accessed = new Date();
-  return this.save();
-};
-
 materialProgressSchema.methods.markAsCompleted = function () {
-  this.status = "completed";
-  this.progress_percentage = 100;
-  this.completed_at = new Date();
-  this.last_accessed = new Date();
+  this.is_completed = true;
+  this.marked_completed_at = new Date();
   return this.save();
 };
 
-materialProgressSchema.methods.updateProgress = function (percentage, timeSpent = 0) {
-  this.progress_percentage = Math.min(100, Math.max(0, percentage));
-
-  if (timeSpent > 0) {
-    this.time_spent_minutes += timeSpent;
-  }
-
-  // Update status based on progress
-  if (this.progress_percentage > 0 && this.status === "not_started") {
-    this.status = "in_progress";
-    this.started_at = new Date();
-  }
-
-  if (this.progress_percentage >= 100) {
-    this.status = "completed";
-    this.completed_at = new Date();
-  }
-
-  this.last_accessed = new Date();
+materialProgressSchema.methods.markAsIncomplete = function () {
+  this.is_completed = false;
+  this.marked_completed_at = null;
   return this.save();
 };
 
-materialProgressSchema.methods.addQuizAttempt = function (score, answers, timeTaken, passed) {
-  this.quiz_attempts.push({
-    score,
-    answers,
-    time_taken_minutes: timeTaken,
-    passed,
-  });
-
-  // Update overall progress based on best score
-  const bestScore = Math.max(...this.quiz_attempts.map((attempt) => attempt.score));
-  this.progress_percentage = bestScore;
-
-  if (passed) {
-    this.status = "completed";
-    this.completed_at = new Date();
-  }
-
-  this.last_accessed = new Date();
-  return this.save();
-};
-
-materialProgressSchema.methods.submitAssignment = function (submissionData) {
-  this.assignment_submission = {
-    submitted_at: new Date(),
-    ...submissionData,
-  };
-
-  this.status = "completed"; // Assignment submission counts as completion
-  this.progress_percentage = 100;
-  this.completed_at = new Date();
-  this.last_accessed = new Date();
-
+materialProgressSchema.methods.rateMaterial = function (rating, feedback = "") {
+  this.rating = rating;
+  this.feedback = feedback.trim();
   return this.save();
 };
 
 // Static methods
-materialProgressSchema.statics.findLearnerProgress = function (learnerId, courseId) {
-  return this.find({ learner_id: learnerId, course_id: courseId }).populate("material_id", "title type order chapter duration_minutes").sort({ "material_id.chapter": 1, "material_id.order": 1 });
+materialProgressSchema.statics.getOrCreate = async function (userId, materialId, courseId) {
+  let progress = await this.findOne({
+    user_id: userId,
+    material_id: materialId,
+  });
+
+  if (!progress) {
+    progress = new this({
+      user_id: userId,
+      material_id: materialId,
+      course_id: courseId,
+    });
+    await progress.save();
+  }
+
+  return progress;
 };
 
-materialProgressSchema.statics.calculateCourseProgress = function (learnerId, courseId) {
+materialProgressSchema.statics.getUserCourseProgress = function (userId, courseId) {
   return this.aggregate([
     {
       $match: {
-        learner_id: new mongoose.Types.ObjectId(learnerId),
+        user_id: new mongoose.Types.ObjectId(userId),
         course_id: new mongoose.Types.ObjectId(courseId),
       },
     },
     {
       $group: {
-        _id: null,
-        totalMaterials: { $sum: 1 },
-        completedMaterials: {
-          $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+        _id: "$course_id",
+        total_materials: { $sum: 1 },
+        completed_materials: {
+          $sum: { $cond: ["$is_completed", 1, 0] },
         },
-        averageProgress: { $avg: "$progress_percentage" },
-        totalTimeSpent: { $sum: "$time_spent_minutes" },
+        completion_percentage: {
+          $avg: { $cond: ["$is_completed", 100, 0] },
+        },
+        average_rating: {
+          $avg: {
+            $cond: [{ $ne: ["$rating", null] }, "$rating", null],
+          },
+        },
+        latest_activity: { $max: "$updated_at" },
       },
     },
     {
       $project: {
-        totalMaterials: 1,
-        completedMaterials: 1,
-        averageProgress: { $round: ["$averageProgress", 2] },
-        totalTimeSpent: 1,
-        completionRate: {
-          $round: [{ $multiply: [{ $divide: ["$completedMaterials", "$totalMaterials"] }, 100] }, 2],
-        },
+        course_id: "$_id",
+        total_materials: 1,
+        completed_materials: 1,
+        completion_percentage: { $round: ["$completion_percentage", 2] },
+        average_rating: { $round: ["$average_rating", 2] },
+        latest_activity: 1,
       },
     },
   ]);
 };
 
-materialProgressSchema.statics.getMaterialStats = function (materialId) {
+materialProgressSchema.statics.getCourseLeaderboard = function (courseId, limit = 10) {
   return this.aggregate([
-    { $match: { material_id: new mongoose.Types.ObjectId(materialId) } },
+    {
+      $match: {
+        course_id: new mongoose.Types.ObjectId(courseId),
+      },
+    },
+    {
+      $group: {
+        _id: "$user_id",
+        total_materials: { $sum: 1 },
+        completed_materials: {
+          $sum: { $cond: ["$is_completed", 1, 0] },
+        },
+        completion_percentage: {
+          $avg: { $cond: ["$is_completed", 100, 0] },
+        },
+        average_rating: {
+          $avg: {
+            $cond: [{ $ne: ["$rating", null] }, "$rating", null],
+          },
+        },
+        latest_completion: { $max: "$marked_completed_at" },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: "$user",
+    },
+    {
+      $project: {
+        user_id: "$_id",
+        user_name: "$user.fullname",
+        user_avatar: "$user.avatar",
+        total_materials: 1,
+        completed_materials: 1,
+        completion_percentage: { $round: ["$completion_percentage", 2] },
+        average_rating: { $round: ["$average_rating", 2] },
+        latest_completion: 1,
+      },
+    },
+    {
+      $sort: {
+        completion_percentage: -1,
+        completed_materials: -1,
+        latest_completion: -1,
+      },
+    },
+    {
+      $limit: limit,
+    },
+  ]);
+};
+
+materialProgressSchema.statics.getUserStats = function (userId) {
+  return this.aggregate([
+    {
+      $match: {
+        user_id: new mongoose.Types.ObjectId(userId),
+      },
+    },
     {
       $group: {
         _id: null,
-        totalLearners: { $sum: 1 },
-        completedCount: {
-          $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+        total_materials: { $sum: 1 },
+        completed_materials: {
+          $sum: { $cond: ["$is_completed", 1, 0] },
         },
-        averageProgress: { $avg: "$progress_percentage" },
-        averageTimeSpent: { $avg: "$time_spent_minutes" },
+        courses_enrolled: { $addToSet: "$course_id" },
+        average_rating_given: {
+          $avg: {
+            $cond: [{ $ne: ["$rating", null] }, "$rating", null],
+          },
+        },
+        latest_activity: { $max: "$updated_at" },
+      },
+    },
+    {
+      $project: {
+        total_materials: 1,
+        completed_materials: 1,
+        completion_rate: {
+          $cond: [
+            { $eq: ["$total_materials", 0] },
+            0,
+            {
+              $round: [
+                {
+                  $multiply: [{ $divide: ["$completed_materials", "$total_materials"] }, 100],
+                },
+                2,
+              ],
+            },
+          ],
+        },
+        courses_count: { $size: "$courses_enrolled" },
+        average_rating_given: { $round: ["$average_rating_given", 2] },
+        latest_activity: 1,
       },
     },
   ]);
 };
 
-// Virtual for time spent formatting
-materialProgressSchema.virtual("formatted_time_spent").get(function () {
-  if (this.time_spent_minutes === 0) return "0m";
-
-  const hours = Math.floor(this.time_spent_minutes / 60);
-  const mins = this.time_spent_minutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
+// Virtual for completion status badge
+materialProgressSchema.virtual("status_badge").get(function () {
+  return this.is_completed ? "✅ Completed" : "⏳ Not Completed";
 });
 
-// Virtual for best quiz score
-materialProgressSchema.virtual("best_quiz_score").get(function () {
-  if (!this.quiz_attempts || this.quiz_attempts.length === 0) return null;
-  return Math.max(...this.quiz_attempts.map((attempt) => attempt.score));
+// Virtual for completion date formatting
+materialProgressSchema.virtual("formatted_completion_date").get(function () {
+  if (!this.marked_completed_at) return null;
+
+  return this.marked_completed_at.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 });
 
 // Ensure virtual fields are serialized
 materialProgressSchema.set("toJSON", { virtuals: true });
 
-const materialProgressModel = mongoose.model("MaterialProgress", materialProgressSchema);
+const MaterialProgress = mongoose.model("MaterialProgress", materialProgressSchema);
 
-export default materialProgressModel;
+export default MaterialProgress;

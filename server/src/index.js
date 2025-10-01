@@ -6,6 +6,10 @@ import authRoutes from "./routes/auth.routes.js";
 import courseRoutes from "./routes/course.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
 import materialRoutes from "./routes/material.routes.js";
+import progressRoutes from "./routes/progress.routes.js";
+import assignmentRoutes from "./routes/assignment.routes.js";
+import discussionRoutes from "./routes/discussion.routes.js";
+import replyRoutes from "./routes/reply.routes.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +26,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/materials", materialRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/forum", discussionRoutes);
+app.use("/api/forum", replyRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -58,11 +66,52 @@ app.get("/", (req, res) => {
       materials: {
         getCourseMaterials: "GET /api/materials/course/:courseId",
         getMaterial: "GET /api/materials/:materialId",
+        viewMaterial: "GET /api/materials/:materialId/view",
+        servePDF: "GET /api/materials/:materialId/pdf",
         createMaterial: "POST /api/materials",
         myMaterials: "GET /api/materials/mentor/my-materials",
         updateMaterial: "PUT /api/materials/:materialId",
         deleteMaterial: "DELETE /api/materials/:materialId",
         reorderMaterials: "PATCH /api/materials/course/:courseId/reorder",
+      },
+      progress: {
+        getMaterialProgress: "GET /api/progress/material/:materialId",
+        updateProgress: "PUT /api/progress/material/:materialId",
+        addNote: "POST /api/progress/material/:materialId/note",
+        rateMaterial: "POST /api/progress/material/:materialId/rate",
+        getCourseProgress: "GET /api/progress/course/:courseId",
+        getLeaderboard: "GET /api/progress/course/:courseId/leaderboard",
+        getUserAnalytics: "GET /api/progress/analytics",
+      },
+      assignments: {
+        submitAssignment: "POST /api/assignments/:assignmentId/submit",
+        getMySubmissions: "GET /api/assignments/my-submissions",
+        getSubmission: "GET /api/assignments/submission/:submissionId",
+        gradeAssignment: "POST /api/assignments/submission/:submissionId/grade",
+        returnForRevision: "POST /api/assignments/submission/:submissionId/return",
+        getSubmissionsForGrading: "GET /api/assignments/grading",
+        getAssignmentStats: "GET /api/assignments/:assignmentId/stats",
+      },
+      forum: {
+        // Discussions
+        getCourseDiscussions: "GET /api/forum/course/:courseId/discussions",
+        createDiscussion: "POST /api/forum/course/:courseId/discussions",
+        getDiscussion: "GET /api/forum/discussions/:discussionId",
+        updateDiscussion: "PUT /api/forum/discussions/:discussionId",
+        deleteDiscussion: "DELETE /api/forum/discussions/:discussionId",
+        likeDiscussion: "POST /api/forum/discussions/:discussionId/like",
+        pinDiscussion: "POST /api/forum/discussions/:discussionId/pin",
+        lockDiscussion: "POST /api/forum/discussions/:discussionId/lock",
+        markResolved: "POST /api/forum/discussions/:discussionId/resolve",
+        searchDiscussions: "GET /api/forum/course/:courseId/discussions/search",
+        // Replies
+        createReply: "POST /api/forum/discussions/:discussionId/replies",
+        updateReply: "PUT /api/forum/replies/:replyId",
+        deleteReply: "DELETE /api/forum/replies/:replyId",
+        likeReply: "POST /api/forum/replies/:replyId/like",
+        markBestAnswer: "POST /api/forum/replies/:replyId/best-answer",
+        getNestedReplies: "GET /api/forum/replies/:replyId/nested",
+        searchReplies: "GET /api/forum/discussions/:discussionId/replies/search",
       },
     },
   });
