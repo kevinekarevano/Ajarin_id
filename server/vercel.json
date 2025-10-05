@@ -1,15 +1,17 @@
 {
   "version": 2,
-  "builds": [
+  "functions": {
+    "src/index.js": {
+      "runtime": "@vercel/node@18"
+    }
+  },
+  "rewrites": [
     {
-      "src": "src/index.js",
-      "use": "@vercel/node"
+      "source": "/(.*)",
+      "destination": "/src/index.js"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/src/index.js"
-    }
-  ]
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
