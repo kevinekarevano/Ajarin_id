@@ -145,9 +145,9 @@ const courseSchema = new mongoose.Schema(
 
 // Indexes untuk performance
 courseSchema.index({ mentor_id: 1 });
-courseSchema.index({ slug: 1 });
+// slug index already created by unique: true
 courseSchema.index({ category: 1 });
-courseSchema.index({ status: 1 });
+// status index already created by index: true below
 
 courseSchema.index({ is_featured: -1 });
 courseSchema.index({ created_at: -1 });

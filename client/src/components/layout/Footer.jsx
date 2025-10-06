@@ -1,7 +1,6 @@
 import { BookOpen, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router";
 
-
 export function Footer() {
   return (
     <footer className="bg-slate-900 border-t border-slate-800">
@@ -9,12 +8,11 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo & Description */}
           <div className="md:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-white" />
+            
+              <div className="w-35 mb-4 flex items-center justify-center">
+                <img src="/public/icons/ajarin-icon.svg" alt="" />
               </div>
-              <span className="text-xl font-bold text-white">Ajarin.id</span>
-            </div>
+           
             <p className="text-slate-400 text-sm leading-relaxed">Platform pembelajaran peer-to-peer yang menghubungkan mentor dan learner untuk berbagi ilmu dan berkembang bersama.</p>
           </div>
 

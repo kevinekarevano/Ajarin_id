@@ -70,7 +70,7 @@ materialProgressSchema.index({ material_id: 1 });
 materialProgressSchema.index({ course_id: 1 });
 materialProgressSchema.index({ user_id: 1, course_id: 1 });
 materialProgressSchema.index({ user_id: 1, material_id: 1 }, { unique: true });
-materialProgressSchema.index({ is_completed: 1 });
+// is_completed index already created by index: true in schema
 
 // Compound index for course progress queries
 materialProgressSchema.index({

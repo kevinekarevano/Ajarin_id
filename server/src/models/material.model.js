@@ -194,7 +194,7 @@ const materialSchema = new mongoose.Schema(
 // Indexes for performance
 materialSchema.index({ course_id: 1 });
 materialSchema.index({ mentor_id: 1 });
-materialSchema.index({ type: 1 });
+// type index already created by index: true in schema
 materialSchema.index({ is_published: 1 });
 
 materialSchema.index({ course_id: 1, order: 1 }); // For ordered retrieval

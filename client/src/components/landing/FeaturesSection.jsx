@@ -54,12 +54,11 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="py-20 bg-slate-900">
+    <section className="py-20 ">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Berbagai Materi</h2>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            <span className="text-yellow-400">Gratis Berkualitas</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Berbagai Materi, <span className="bg-gradient-to-r from-[#5C92FF] via-[#D6FEEA] to-[#F5FF64] bg-clip-text text-transparent ">Gratis Berkualitas</span>
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             Akses materi pembelajaran inovatif dan relevan yang dirancang untuk membantu menyelesaikan kebutuhan belajar, dari tingkat dasar hingga mahir, tanpa perlu mengeluarkan biaya.
@@ -89,14 +88,13 @@ export function FeaturesSection() {
           <div className="inline-block bg-slate-800/30 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/30">
             <div className="flex flex-wrap justify-center gap-4">
               {[
-                { name: "HTML", color: "bg-orange-500", icon: "🌐" },
-                { name: "CSS", color: "bg-blue-500", icon: "🎨" },
-                { name: "JavaScript", color: "bg-yellow-500", icon: "⚡" },
-                { name: "React", color: "bg-cyan-500", icon: "⚛️" },
-                { name: "Node.js", color: "bg-green-500", icon: "🟢" },
-                { name: "Python", color: "bg-blue-600", icon: "🐍" },
-                { name: "Design", color: "bg-purple-500", icon: "✨" },
-                { name: "AI/ML", color: "bg-pink-500", icon: "🤖" },
+                { name: "Website", color: "bg-orange-500", icon: "🌐" },
+                { name: "Softskill", color: "bg-blue-500", icon: "🧠" },
+                { name: "Design", color: "bg-yellow-500", icon: "🎨" },
+                { name: "Academic", color: "bg-cyan-500", icon: "📐" },
+                { name: "Editing", color: "bg-green-500", icon: "💻" },
+                { name: "AI", color: "bg-blue-600", icon: "🤖" },
+                { name: "Mobile Dev", color: "bg-blue-600", icon: "📱" },
               ].map((tech, index) => (
                 <div key={index} className="flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-lg">
                   <span className="text-lg">{tech.icon}</span>

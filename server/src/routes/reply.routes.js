@@ -1,6 +1,6 @@
 import express from "express";
 import { createReply, updateReply, deleteReply, toggleLikeReply, markAsBestAnswer, unmarkAsBestAnswer, getNestedReplies, getUserReplies, searchReplies } from "../controllers/reply.controller.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
+import authenticate from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 

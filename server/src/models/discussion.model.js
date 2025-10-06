@@ -136,8 +136,8 @@ const discussionSchema = new mongoose.Schema(
 discussionSchema.index({ course_id: 1 });
 discussionSchema.index({ author_id: 1 });
 discussionSchema.index({ material_id: 1 });
-discussionSchema.index({ type: 1 });
-discussionSchema.index({ is_pinned: 1 });
+// type index already created by index: true in schema
+// is_pinned index already created by index: true in schema
 discussionSchema.index({ created_at: -1 });
 discussionSchema.index({ last_reply_at: -1 });
 

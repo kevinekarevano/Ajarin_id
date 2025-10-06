@@ -193,7 +193,7 @@ const assignmentSubmissionSchema = new mongoose.Schema(
 assignmentSubmissionSchema.index({ assignment_id: 1 });
 assignmentSubmissionSchema.index({ student_id: 1 });
 assignmentSubmissionSchema.index({ course_id: 1 });
-assignmentSubmissionSchema.index({ status: 1 });
+// status index already created by index: true in schema
 assignmentSubmissionSchema.index({ student_id: 1, assignment_id: 1 });
 
 // Compound index for mentor grading view
