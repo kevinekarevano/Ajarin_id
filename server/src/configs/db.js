@@ -6,10 +6,9 @@ const connectDB = async () => {
       dbName: "ajarin_id",
     });
     console.log(`MongoDB Connected: ${connect.connection.host}`);
-    return connect;
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
-    throw error; // Throw error instead of exit
+    process.exit(1); // Exit process with failure
   }
 };
 

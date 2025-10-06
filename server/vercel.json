@@ -2,17 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/minimal.js",
+      "src": "src/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/src/minimal.js"
+      "dest": "/src/index.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
