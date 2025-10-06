@@ -14,8 +14,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// DB Connection
-connectDB();
+// Initialize server
+const startServer = async () => {
+  try {
+    // DB Connection
+    await connectDB();
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Database connection failed:", error.message);
+    // Don't exit in serverless, just log error
+  }
+};
+
+// Start server initialization
+startServer();
 
 // Middleware
 app.use(express.json());
@@ -30,6 +42,26 @@ app.use("/api/progress", progressRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/forum", discussionRoutes);
 app.use("/api/forum", replyRoutes);
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error("Unhandled error:", error);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+    error: process.env.NODE_ENV === "development" ? error.message : "Something went wrong",
+  });
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Server is healthy",
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV,
+  });
+});
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -117,6 +149,12 @@ app.get("/", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel
+export default app;
