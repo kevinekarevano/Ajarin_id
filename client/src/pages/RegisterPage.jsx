@@ -1,18 +1,23 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, AtSign, Loader2 } from "lucide-react";
+import useAuthStore from "@/store/authStore";
+import { toast } from "react-hot-toast";
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
+  const { register, isLoading, error } = useAuthStore();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullname: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "",
     agreeToTerms: false,
   });
 
@@ -24,21 +29,29 @@ export default function RegisterPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Password tidak cocok!");
+      toast.error("Password tidak cocok!");
       return;
     }
 
     if (!formData.agreeToTerms) {
-      alert("Harap setujui syarat dan ketentuan!");
+      toast.error("Harap setujui syarat dan ketentuan!");
       return;
     }
 
-    // Handle registration logic here
-    console.log("Registration attempt:", formData);
+    // Prepare data for API (exclude confirmPassword and agreeToTerms)
+    const { confirmPassword, agreeToTerms, ...registrationData } = formData;
+
+    const result = await register(registrationData);
+
+    if (result.success) {
+      // Redirect to dashboard
+      navigate("/dashboard");
+    }
+    // Error handling is done in the store with toast
   };
 
   return (
@@ -68,22 +81,47 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Full Name Input */}
               <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium text-slate-300">
+                <label htmlFor="fullname" className="text-sm font-medium text-slate-300">
                   Nama Lengkap
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                   <input
-                    id="fullName"
-                    name="fullName"
+                    id="fullname"
+                    name="fullname"
                     type="text"
                     placeholder="Masukkan nama lengkap"
-                    value={formData.fullName}
+                    value={formData.fullname}
                     onChange={handleInputChange}
                     className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 py-2 pl-10 text-sm text-white placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     required
                   />
                 </div>
+              </div>
+
+              {/* Username Input */}
+              <div className="space-y-2">
+                <label htmlFor="username" className="text-sm font-medium text-slate-300">
+                  Username
+                </label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    placeholder="Masukkan username unik"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700/50 px-3 py-2 pl-10 text-sm text-white placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    required
+                    minLength={3}
+                    maxLength={20}
+                    pattern="^[a-zA-Z0-9_]+$"
+                    title="Username hanya boleh mengandung huruf, angka, dan underscore"
+                  />
+                </div>
+                <p className="text-xs text-slate-500">3-20 karakter, hanya huruf, angka, dan underscore</p>
               </div>
 
               {/* Email Input */}
@@ -178,9 +216,18 @@ export default function RegisterPage() {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full  bg-[#2279AB] hover:bg-[#1f6d9a] text-white py-3 text-lg font-semibold transition-all duration-300 group">
-                Daftar Sekarang
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <Button type="submit" disabled={isLoading} className="w-full  bg-[#2279AB] hover:bg-[#1f6d9a] text-white py-3 text-lg font-semibold transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Mendaftar...
+                  </>
+                ) : (
+                  <>
+                    Daftar Sekarang
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
             </form>
 

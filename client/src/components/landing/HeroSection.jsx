@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, Users, Star } from "lucide-react";
 import { Link } from "react-router";
+import useAuthStore from "@/store/authStore";
 
 export function HeroSection() {
+  const { isAuthenticated } = useAuthStore();
+
   return (
     <section className="relative min-h-screen pt-20  overflow-hidden">
       {/* Background decorative elements */}
@@ -41,8 +44,25 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4  mb-16">
-          <Button className="bg-[#2279AB] text-2xl py-6 px-5 hover:bg-[#1f6d9a] text-white">Gabung Sekarang</Button>
-          <Button className="bg-[#3A4B54]  text-2xl py-6 px-5  hover:bg-[#334249] text-white">Lihat Semua Kursus</Button>
+          {isAuthenticated ? (
+            <>
+              <Button className="bg-[#2279AB] text-2xl py-6 px-5 hover:bg-[#1f6d9a] text-white" asChild>
+                <Link to="/dashboard">Ke Dashboard</Link>
+              </Button>
+              <Button className="bg-[#3A4B54]  text-2xl py-6 px-5  hover:bg-[#334249] text-white" asChild>
+                <Link to="/courses">Lihat Semua Kursus</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button className="bg-[#2279AB] text-2xl py-6 px-5 hover:bg-[#1f6d9a] text-white" asChild>
+                <Link to="/register">Gabung Sekarang</Link>
+              </Button>
+              <Button className="bg-[#3A4B54]  text-2xl py-6 px-5  hover:bg-[#334249] text-white" asChild>
+                <Link to="/courses">Lihat Semua Kursus</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Featured courses preview */}

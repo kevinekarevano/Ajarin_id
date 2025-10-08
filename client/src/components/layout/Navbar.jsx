@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, BookOpen } from "lucide-react";
+import { Menu, X, BookOpen, User, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router";
+import useAuthStore from "@/store/authStore";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuthStore();
 
   const navigation = [
     { name: "Beranda", href: "/" },
@@ -13,6 +15,20 @@ export function Navbar() {
     { name: "Tentang", href: "/about" },
     { name: "Kontak", href: "/contact" },
   ];
+
+  const authenticatedNavigation = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Kursus", href: "/courses" },
+    { name: "Tentang", href: "/about" },
+    { name: "Kontak", href: "/contact" },
+  ];
+
+  const currentNavigation = isAuthenticated ? authenticatedNavigation : navigation;
+
+  const handleLogout = () => {
+    logout();
+    setIsMenuOpen(false);
+  };
 
   // Function to check if link is active
   const isActiveLink = (href) => {
@@ -44,7 +60,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
+            {currentNavigation.map((item) => (
               <Link key={item.name} to={item.href} className={getLinkClasses(item.href)}>
                 {item.name}
                 {/* Active indicator */}
@@ -53,14 +69,31 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons / User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button className="bg-[#3A4B54] border-white border hover:bg-[#334249] text-white" asChild>
-              <Link to="/login">Masuk</Link>
-            </Button>
-            <Button className="bg-[#2279AB] hover:bg-[#1f6d9a] text-white" asChild>
-              <Link to="/register">Gabung Sekarang</Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center space-x-3 text-white">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium">{user?.fullName || "User"}</span>
+                </div>
+                <Button onClick={handleLogout} variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Keluar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button className="bg-[#3A4B54] border-white border hover:bg-[#334249] text-white" asChild>
+                  <Link to="/login">Masuk</Link>
+                </Button>
+                <Button className="bg-[#2279AB] hover:bg-[#1f6d9a] text-white" asChild>
+                  <Link to="/register">Gabung Sekarang</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -73,7 +106,7 @@ export function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-slate-800">
             <nav className="flex flex-col space-y-4">
-              {navigation.map((item) => (
+              {currentNavigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
@@ -86,16 +119,33 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-4 border-t border-slate-800">
-                <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800 justify-start" asChild>
-                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    Masuk
-                  </Link>
-                </Button>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white justify-start" asChild>
-                  <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                    Gabung Sekarang
-                  </Link>
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center space-x-3 px-3 py-2 text-white border-b border-slate-700 pb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-medium">{user?.fullName || "User"}</span>
+                    </div>
+                    <Button onClick={handleLogout} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 justify-start">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Keluar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800 justify-start" asChild>
+                      <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                        Masuk
+                      </Link>
+                    </Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white justify-start" asChild>
+                      <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                        Gabung Sekarang
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>

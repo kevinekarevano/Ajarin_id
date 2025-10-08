@@ -10,7 +10,7 @@ export function Footer() {
           <div className="md:col-span-1">
             
               <div className="w-35 mb-4 flex items-center justify-center">
-                <img src="/public/icons/ajarin-icon.svg" alt="" />
+                <img src="/icons/ajarin-icon.svg" alt="" />
               </div>
            
             <p className="text-slate-400 text-sm leading-relaxed">Platform pembelajaran peer-to-peer yang menghubungkan mentor dan learner untuk berbagi ilmu dan berkembang bersama.</p>

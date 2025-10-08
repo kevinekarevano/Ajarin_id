@@ -136,3 +136,227 @@
     @apply bg-background text-foreground font-jakarta;
   }
 }
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom sidebar styling for mobile */
+@layer components {
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    background-color: #1a2332 !important;
+    color: white !important;
+  }
+
+  [data-sidebar="sidebar"][data-mobile="true"] * {
+    color: inherit;
+  }
+
+  /* Override sheet content background */
+  .bg-sidebar {
+    background-color: #1a2332 !important;
+  }
+
+  .text-sidebar-foreground {
+    color: white !important;
+  }
+
+  /* Force dark theme cards and components - DASHBOARD ONLY */
+  .sidebar-provider .dark [data-slot="card"],
+  .sidebar-provider [data-slot="card"] {
+    background-color: #1e293b !important;
+    color: white !important;
+    border-color: #374151 !important;
+  }
+
+  .sidebar-provider .dark .bg-card,
+  .sidebar-provider .bg-card {
+    background-color: #1e293b !important;
+  }
+
+  .sidebar-provider .dark .text-card-foreground,
+  .sidebar-provider .text-card-foreground {
+    color: white !important;
+  }
+
+  /* Ensure sidebar styling */
+  [data-sidebar="sidebar"] {
+    background-color: #1a2332 !important;
+    color: white !important;
+  }
+
+  /* Force sidebar menu items styling */
+  [data-sidebar="sidebar"] [data-sidebar="menu-button"] {
+    color: #cbd5e1 !important;
+  }
+
+  [data-sidebar="sidebar"] [data-sidebar="menu-button"]:hover {
+    background-color: #2d3748 !important;
+    color: white !important;
+  }
+
+  [data-sidebar="sidebar"] [data-sidebar="menu-button"][data-active="true"] {
+    background-color: #3b82f6 !important;
+    color: white !important;
+  }
+
+  /* Force dark background for all dashboard elements */
+  .dark body {
+    background-color: #0f1624 !important;
+  }
+
+  .dark #root {
+    background-color: #0f1624 !important;
+    min-height: 100vh;
+  }
+
+  /* Input field styling in dark mode - DASHBOARD ONLY */
+  .sidebar-provider .dark input,
+  .sidebar-provider input {
+    background-color: rgba(71, 85, 105, 0.5) !important;
+    border-color: #374151 !important;
+    color: white !important;
+  }
+
+  .sidebar-provider .dark input::placeholder,
+  .sidebar-provider input::placeholder {
+    color: #9ca3af !important;
+  }
+
+  /* Ensure full width navbar and content */
+  [data-sidebar="inset"] {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1 !important;
+  }
+
+  [data-sidebar="inset"] > header {
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+
+  [data-sidebar="inset"] > main {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Remove any max-width constraints */
+  .sidebar-inset {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Force full width for the main container */
+  .sidebar-provider {
+    width: 100% !important;
+  }
+
+  /* Dashboard specific overrides */
+  [data-sidebar="sidebar"] + [data-sidebar="inset"] {
+    width: 100% !important;
+    flex: 1 !important;
+  }
+
+  /* Remove container padding that might cause issues - DASHBOARD ONLY */
+  .sidebar-provider .container {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Force full width for all dashboard elements */
+  .sidebar-provider > * {
+    width: 100% !important;
+  }
+
+  /* Override any shadcn container constraints - DASHBOARD ONLY */
+  .sidebar-provider .max-w-7xl,
+  .sidebar-provider .max-w-6xl,
+  .sidebar-provider .max-w-5xl,
+  .sidebar-provider .max-w-4xl,
+  .sidebar-provider .max-w-3xl,
+  .sidebar-provider .max-w-2xl,
+  .sidebar-provider .max-w-xl,
+  .sidebar-provider .max-w-lg,
+  .sidebar-provider .max-w-md,
+  .sidebar-provider .max-w-sm {
+    max-width: none !important;
+  }
+
+  /* Specific dashboard overrides */
+  .dashboard-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Force the sidebar inset to take full available space */
+  [data-sidebar="inset"] {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Absolutely force full width - nuclear option */
+  .sidebar-provider,
+  .sidebar-provider > div,
+  [data-sidebar="inset"],
+  [data-sidebar="inset"] > header,
+  [data-sidebar="inset"] > main,
+  [data-sidebar="inset"] > main > div {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Remove any margin that might cause offset */
+  [data-sidebar="inset"] > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Box sizing for proper layout */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Ensure non-dashboard pages keep their constraints */
+  .container {
+    max-width: 1200px;
+  }
+
+  /* Then override for dashboard only */
+  .sidebar-provider .container {
+    max-width: none !important;
+  }
+
+  /* Override any potential Tailwind constraints - DASHBOARD ONLY */
+  .sidebar-provider .max-w-xs,
+  .sidebar-provider .max-w-sm,
+  .sidebar-provider .max-w-md,
+  .sidebar-provider .max-w-lg,
+  .sidebar-provider .max-w-xl,
+  .sidebar-provider .max-w-2xl,
+  .sidebar-provider .max-w-3xl,
+  .sidebar-provider .max-w-4xl,
+  .sidebar-provider .max-w-5xl,
+  .sidebar-provider .max-w-6xl,
+  .sidebar-provider .max-w-7xl,
+  .sidebar-provider .max-w-full,
+  .sidebar-provider .max-w-screen-sm,
+  .sidebar-provider .max-w-screen-md,
+  .sidebar-provider .max-w-screen-lg,
+  .sidebar-provider .max-w-screen-xl,
+  .sidebar-provider .max-w-screen-2xl {
+    max-width: none !important;
+  }
+}

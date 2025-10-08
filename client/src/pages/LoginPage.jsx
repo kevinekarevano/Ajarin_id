@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import useAuthStore from "@/store/authStore";
+import { toast } from "react-hot-toast";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, isLoading, error } = useAuthStore();
+
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -18,10 +23,16 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", formData);
+
+    const result = await login(formData);
+
+    if (result.success) {
+      // Redirect to dashboard
+      navigate("/dashboard");
+    }
+    // Error handling is done in the store with toast
   };
 
   return (
@@ -100,9 +111,18 @@ export default function LoginPage() {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full bg-[#2279AB] hover:bg-[#1f6d9a] text-white py-3 text-lg font-semibold transition-all duration-300 group">
-                Masuk
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <Button type="submit" disabled={isLoading} className="w-full bg-[#2279AB] hover:bg-[#1f6d9a] text-white py-3 text-lg font-semibold transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    Masuk
+                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
             </form>
 
