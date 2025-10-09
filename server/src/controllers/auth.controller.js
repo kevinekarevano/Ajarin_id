@@ -98,7 +98,7 @@ export const register = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Response (exclude password and token)
+    // Response (include token for frontend compatibility)
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -113,6 +113,7 @@ export const register = async (req, res) => {
           bio: newUser.bio,
           createdAt: newUser.createdAt,
         },
+        token: token, // Include token for frontend cookie storage
       },
     });
   } catch (error) {
@@ -201,7 +202,7 @@ export const login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Response (exclude password and token)
+    // Response (include token for frontend compatibility)
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -215,6 +216,7 @@ export const login = async (req, res) => {
           headline: user.headline,
           bio: user.bio,
         },
+        token: token, // Include token for frontend cookie storage
       },
     });
   } catch (error) {

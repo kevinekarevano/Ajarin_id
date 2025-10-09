@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Auth Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🍪 Cookie Authentication Debug Tool</h1>
+
+    <div class="section info">
+        <h3>Authentication Status</h3>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="section">
+        <h3>Actions</h3>
+        <button class="btn-primary" onclick="checkCookies()">Check Cookies</button>
+        <button class="btn-success" onclick="testLogin()">Test Login</button>
+        <button class="btn-danger" onclick="clearAuth()">Clear Auth</button>
+        <button class="btn-primary" onclick="refreshData()">Refresh Data</button>
+    </div>
+
+    <div class="section">
+        <h3>Debug Output</h3>
+        <pre id="debug-output">Click any button to see debug information...</pre>
+    </div>
+
+    <script>
+        // Cookie utilities (same as in cookieAuth.js)
+        const cookieUtils = {
+            getCookie: (name) => {
+                const nameEQ = name + "=";
+                const cookies = document.cookie.split(';');
+
+                for (let cookie of cookies) {
+                    let c = cookie.trim();
+                    if (c.indexOf(nameEQ) === 0) {
+                        return c.substring(nameEQ.length, c.length);
+                    }
+                }
+                return null;
+            },
+
+            setCookie: (name, value, options = {}) => {
+                const {
+                    days = 7,
+                    secure = false,
+                    sameSite = 'strict',
+                    path = '/'
+                } = options;
+
+                let cookieString = `${name}=${value}`;
+
+                if (days) {
+                    const expires = new Date();
+                    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+                    cookieString += `; expires=${expires.toUTCString()}`;
+                }
+
+                cookieString += `; path=${path}`;
+
+                if (secure && window.location.protocol === 'https:') {
+                    cookieString += '; secure';
+                }
+
+                cookieString += `; samesite=${sameSite}`;
+
+                document.cookie = cookieString;
+            },
+
+            deleteCookie: (name, path = '/') => {
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=${path}`;
+            }
+        };
+
+        function updateStatus() {
+            const token = cookieUtils.getCookie('token');
+            const userData = localStorage.getItem('user_data');
+
+            const statusDiv = document.getElementById('auth-status');
+
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    statusDiv.innerHTML = `
+                        <div class="success">
+                            ✅ <strong>Authenticated</strong><br>
+                            User: ${user.name || user.fullname || 'Unknown'}<br>
+                            Token: ${token.substring(0, 20)}...<br>
+                            Role: ${user.role || 'Unknown'}
+                        </div>
+                    `;
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>Auth Data Corrupted</strong><br>
+                            Token exists but user data is invalid
+                        </div>
+                    `;
+                }
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>Not Authenticated</strong><br>
+                        Missing token or user data
+                    </div>
+                `;
+            }
+        }
+
+        function checkCookies() {
+            const token = cookieUtils.getCookie('token');
+            const userData = localStorage.getItem('user_data');
+            const allCookies = document.cookie;
+
+            const debug = {
+                timestamp: new Date().toISOString(),
+                cookies: {
+                    token: token ? token.substring(0, 20) + '...' : null,
+                    all_cookies: allCookies || 'No cookies found'
+                },
+                localStorage: {
+                    user_data: userData ? 'Present' : 'Not found',
+                    parsed_user: userData ? (() => {
+                        try {
+                            return JSON.parse(userData);
+                        } catch {
+                            return 'Invalid JSON';
+                        }
+                    })() : null
+                },
+                browser_info: {
+                    protocol: window.location.protocol,
+                    hostname: window.location.hostname,
+                    cookies_enabled: navigator.cookieEnabled
+                }
+            };
+
+            document.getElementById('debug-output').textContent = JSON.stringify(debug, null, 2);
+            updateStatus();
+        }
+
+        function testLogin() {
+            // Simulate successful login
+            const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_token_' + Date.now();
+            const fakeUser = {
+                id: 1,
+                name: 'Test User',
+                email: 'test@example.com',
+                role: 'mentor'
+            };
+
+            cookieUtils.setCookie('token', fakeToken, {
+                days: 7,
+                secure: window.location.protocol === 'https:',
+                sameSite: 'strict'
+            });
+
+            localStorage.setItem('user_data', JSON.stringify(fakeUser));
+
+            const debug = {
+                action: 'Test Login',
+                timestamp: new Date().toISOString(),
+                token_set: fakeToken.substring(0, 20) + '...',
+                user_set: fakeUser
+            };
+
+            document.getElementById('debug-output').textContent = JSON.stringify(debug, null, 2);
+            updateStatus();
+        }
+
+        function clearAuth() {
+            cookieUtils.deleteCookie('token');
+            localStorage.removeItem('user_data');
+
+            const debug = {
+                action: 'Clear Authentication',
+                timestamp: new Date().toISOString(),
+                status: 'All auth data cleared'
+            };
+
+            document.getElementById('debug-output').textContent = JSON.stringify(debug, null, 2);
+            updateStatus();
+        }
+
+        function refreshData() {
+            updateStatus();
+            checkCookies();
+        }
+
+        // Initialize
+        updateStatus();
+    </script>
+</body>
+
+</html>

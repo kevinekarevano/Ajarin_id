@@ -3,8 +3,16 @@ import userModel from "../models/user.model.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
-    // Get token from cookie only (cookie-based auth)
-    const token = req.cookies.token;
+    // Get token from cookie or Authorization header
+    let token = req.cookies.token;
+
+    // If no token in cookies, check Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      }
+    }
 
     if (!token) {
       return res.status(401).json({

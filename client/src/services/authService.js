@@ -41,6 +41,16 @@ export const authService = {
     }
   },
 
+  // Validate token
+  validateToken: async () => {
+    try {
+      const response = await api.get("/auth/profile");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Refresh token
   refreshToken: async () => {
     try {

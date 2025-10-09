@@ -39,19 +39,19 @@ const useAuthStore = create((set, get) => ({
         error: null,
       });
 
-      toast.success(`Selamat datang, ${user.fullname || user.name}!`);
-      return { success: true, user };
+      toast.success(`Selamat datang, ${user.name}!`);
+      return { success: true, data: { user, token } };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Login gagal";
+      const message = error.response?.data?.message || "Login gagal";
       set({
         isLoading: false,
-        error: errorMessage,
+        error: message,
         isAuthenticated: false,
         user: null,
         token: null,
       });
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+      toast.error(message);
+      return { success: false, error: message };
     }
   },
 
@@ -76,19 +76,19 @@ const useAuthStore = create((set, get) => ({
         error: null,
       });
 
-      toast.success(`Akun berhasil dibuat! Selamat datang, ${user.fullname || user.name}!`);
-      return { success: true, user };
+      toast.success(`Registrasi berhasil! Selamat datang, ${user.name}!`);
+      return { success: true, data: { user, token } };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Registrasi gagal";
+      const message = error.response?.data?.message || "Registrasi gagal";
       set({
         isLoading: false,
-        error: errorMessage,
+        error: message,
         isAuthenticated: false,
         user: null,
         token: null,
       });
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+      toast.error(message);
+      return { success: false, error: message };
     }
   },
 
@@ -99,8 +99,7 @@ const useAuthStore = create((set, get) => ({
     try {
       await authService.logout();
     } catch (error) {
-      // Even if API call fails, we still want to logout locally
-      console.error("Logout API call failed:", error);
+      console.error("Logout error:", error);
     } finally {
       // Clear all auth data
       tokenManager.clearAll();
@@ -148,10 +147,10 @@ const useAuthStore = create((set, get) => ({
           // Validate token with server
           const response = await authService.validateToken();
 
-          if (response.success) {
+          if (response.data.success) {
             console.log("AuthStore: Token validation successful");
             set({
-              user: response.data.user,
+              user: response.data.data,
               token: storedToken,
               isAuthenticated: true,
               isInitialized: true,
@@ -161,11 +160,7 @@ const useAuthStore = create((set, get) => ({
             throw new Error("Token validation failed");
           }
         } catch (error) {
-          console.log("AuthStore: Token validation failed, clearing auth", {
-            error: error.message,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-          });
+          console.log("AuthStore: Token validation failed, clearing auth");
           // Token is invalid, clear everything
           tokenManager.clearAll();
           set({
@@ -218,8 +213,8 @@ const useAuthStore = create((set, get) => ({
 
     try {
       const response = await authService.validateToken();
-      if (response.success) {
-        const user = response.data.user;
+      if (response.data.success) {
+        const user = response.data.data;
         tokenManager.setUserData(user);
         set({ user });
         return true;

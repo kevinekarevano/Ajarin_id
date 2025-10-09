@@ -10,6 +10,7 @@ import DashboardHomePage from "@/pages/dashboard/DashboardHomePage";
 import DashboardProfilePage from "@/pages/dashboard/DashboardProfilePage";
 import MyCoursesPage from "@/pages/dashboard/MyCoursesPage";
 import DashboardBrowseCoursesPage from "@/pages/dashboard/DashboardBrowseCoursesPage";
+import MyCourseManagementPage from "@/pages/dashboard/MyCourseManagementPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AuthRoute from "@/components/AuthRoute";
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -53,6 +54,7 @@ const AppRouter = () => {
           <Route path="profile" element={<DashboardProfilePage />} />
           <Route path="my-courses" element={<MyCoursesPage />} />
           <Route path="browse-courses" element={<DashboardBrowseCoursesPage />} />
+          <Route path="manage-courses" element={<MyCourseManagementPage />} />
           <Route path="assignments" element={<div className="text-white p-6">Assignments Page - Coming Soon</div>} />
           <Route path="progress" element={<div className="text-white p-6">Progress Page - Coming Soon</div>} />
           <Route path="my-teaching" element={<div className="text-white p-6">My Teaching Page - Coming Soon</div>} />

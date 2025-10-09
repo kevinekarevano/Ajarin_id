@@ -158,6 +158,14 @@ export function DashboardSidebar() {
                 {openDropdowns.mentor && (
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={isActiveLink("/dashboard/manage-courses")}>
+                        <Link to="/dashboard/manage-courses">
+                          <Settings className="w-4 h-4" />
+                          <span>Kelola Kursus</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
                       <SidebarMenuSubButton asChild isActive={isActiveLink("/dashboard/my-teaching")}>
                         <Link to="/dashboard/my-teaching">
                           <span>Kursus yang Saya Ajar</span>

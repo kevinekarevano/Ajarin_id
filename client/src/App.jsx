@@ -9,6 +9,7 @@ function App() {
 
   useEffect(() => {
     // Initialize auth on app startup
+    console.log("App: Initializing auth...");
     initializeAuth();
   }, [initializeAuth]);
 
