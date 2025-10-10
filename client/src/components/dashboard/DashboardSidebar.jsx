@@ -24,7 +24,7 @@ export function DashboardSidebar() {
   const location = useLocation();
   const [openDropdowns, setOpenDropdowns] = useState({
     learner: true,
-    mentor: false,
+    mentor: true,
   });
 
   const handleLogout = () => {

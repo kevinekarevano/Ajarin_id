@@ -11,6 +11,7 @@ import DashboardProfilePage from "@/pages/dashboard/DashboardProfilePage";
 import MyCoursesPage from "@/pages/dashboard/MyCoursesPage";
 import DashboardBrowseCoursesPage from "@/pages/dashboard/DashboardBrowseCoursesPage";
 import MyCourseManagementPage from "@/pages/dashboard/MyCourseManagementPage";
+import CreateCoursePage from "@/pages/dashboard/CreateCoursePage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AuthRoute from "@/components/AuthRoute";
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -58,7 +59,7 @@ const AppRouter = () => {
           <Route path="assignments" element={<div className="text-white p-6">Assignments Page - Coming Soon</div>} />
           <Route path="progress" element={<div className="text-white p-6">Progress Page - Coming Soon</div>} />
           <Route path="my-teaching" element={<div className="text-white p-6">My Teaching Page - Coming Soon</div>} />
-          <Route path="create-course" element={<div className="text-white p-6">Create Course Page - Coming Soon</div>} />
+          <Route path="create-course" element={<CreateCoursePage />} />
           <Route path="students" element={<div className="text-white p-6">Students Page - Coming Soon</div>} />
           <Route path="discussions" element={<div className="text-white p-6">Discussions Page - Coming Soon</div>} />
           <Route path="events" element={<div className="text-white p-6">Events Page - Coming Soon</div>} />

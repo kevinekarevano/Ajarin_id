@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import api from "../lib/api";
 import toast from "react-hot-toast";
 import { tokenManager } from "@/lib/cookieAuth";
+import { debugFormData } from "@/utils/debugCourse";
 
 const useCourseStore = create(
   persist(
@@ -117,21 +118,36 @@ const useCourseStore = create(
           formData.append("category", courseData.category);
 
           // Handle tags
-          if (courseData.tags) {
-            const tagsArray = courseData.tags.split(",").map((tag) => tag.trim());
-            tagsArray.forEach((tag) => {
-              if (tag) formData.append("tags", tag);
+          if (courseData.tags && Array.isArray(courseData.tags)) {
+            courseData.tags.forEach((tag) => {
+              if (tag && tag.trim()) formData.append("tags", tag.trim());
             });
           }
 
           // Handle cover image
-          if (courseData.cover) {
-            formData.append("cover", courseData.cover);
+          if (courseData.coverImage && courseData.coverImage instanceof File) {
+            formData.append("cover", courseData.coverImage);
+            console.log("=== CourseStore: Cover image added to FormData ===");
+            console.log("File name:", courseData.coverImage.name);
+            console.log("File size:", courseData.coverImage.size);
+            console.log("File type:", courseData.coverImage.type);
+          } else {
+            console.log("=== CourseStore: No cover image provided ===");
+            console.log("coverImage value:", courseData.coverImage);
+            console.log("Is File instance:", courseData.coverImage instanceof File);
           }
+
+          // Debug FormData before sending
+          console.log("Sending FormData to backend:");
+          debugFormData(formData);
+
+          // Additional debug: check FormData size and entries
+          console.log("FormData has entries:", formData.has("cover"));
+          console.log("FormData entries count:", Array.from(formData.entries()).length);
 
           const response = await api.post("/courses", formData, {
             headers: {
-              "Content-Type": "multipart/form-data",
+              // Don't set Content-Type for FormData, let browser set it with boundary
             },
           });
 
@@ -147,6 +163,10 @@ const useCourseStore = create(
           }
         } catch (error) {
           console.error("Error creating course:", error);
+          console.error("Error response:", error.response);
+          console.error("Error request:", error.request);
+          console.error("Error message:", error.message);
+
           const errorMessage = error.response?.data?.message || "Gagal membuat kursus";
           set({
             error: errorMessage,
@@ -169,21 +189,30 @@ const useCourseStore = create(
           formData.append("category", courseData.category);
 
           // Handle tags
-          if (courseData.tags) {
-            const tagsArray = courseData.tags.split(",").map((tag) => tag.trim());
-            tagsArray.forEach((tag) => {
-              if (tag) formData.append("tags", tag);
+          if (courseData.tags && Array.isArray(courseData.tags)) {
+            courseData.tags.forEach((tag) => {
+              if (tag && tag.trim()) formData.append("tags", tag.trim());
             });
           }
 
           // Handle cover image (only if new file is provided)
-          if (courseData.cover instanceof File) {
-            formData.append("cover", courseData.cover);
+          if (courseData.coverImage instanceof File) {
+            formData.append("cover", courseData.coverImage);
+            console.log("=== CourseStore: Updating course with new cover image ===");
+            console.log("File name:", courseData.coverImage.name);
+            console.log("File size:", courseData.coverImage.size);
+            console.log("File type:", courseData.coverImage.type);
+          } else {
+            console.log("=== CourseStore: Updating course without new cover image ===");
           }
+
+          // Debug FormData before sending
+          console.log("Updating course FormData:");
+          debugFormData(formData);
 
           const response = await api.put(`/courses/${courseId}`, formData, {
             headers: {
-              "Content-Type": "multipart/form-data",
+              // Don't set Content-Type for FormData, let browser set it with boundary
             },
           });
 
@@ -199,6 +228,10 @@ const useCourseStore = create(
           }
         } catch (error) {
           console.error("Error updating course:", error);
+          console.error("Error response:", error.response);
+          console.error("Error request:", error.request);
+          console.error("Error message:", error.message);
+
           const errorMessage = error.response?.data?.message || "Gagal memperbarui kursus";
           set({
             error: errorMessage,
@@ -213,6 +246,9 @@ const useCourseStore = create(
       deleteCourse: async (courseId) => {
         try {
           set({ loading: true, error: null });
+
+          console.log("=== CourseStore: Deleting course ===");
+          console.log("Course ID:", courseId);
 
           const response = await api.delete(`/courses/${courseId}`);
 
@@ -268,6 +304,10 @@ const useCourseStore = create(
       updateCourseStatus: async (courseId, status) => {
         try {
           set({ loading: true, error: null });
+
+          console.log("=== CourseStore: Updating course status ===");
+          console.log("Course ID:", courseId);
+          console.log("New status:", status);
 
           const response = await api.patch(`/courses/${courseId}/status`, { status });
 

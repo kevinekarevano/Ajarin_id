@@ -25,7 +25,21 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+
+// Parse URL-encoded data
+app.use(express.urlencoded({ extended: true }));
+
+// Parse JSON data only for non-multipart requests
+app.use((req, res, next) => {
+  if (req.headers["content-type"] && req.headers["content-type"].includes("multipart/form-data")) {
+    // Skip JSON parsing for multipart requests, let multer handle it
+    next();
+  } else {
+    // Use JSON parser for other requests
+    express.json()(req, res, next);
+  }
+});
+
 app.use(cookieParser());
 
 // Routes

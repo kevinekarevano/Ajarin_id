@@ -5,6 +5,31 @@ import multer from "multer";
 // Create new course
 export const createCourse = async (req, res) => {
   try {
+    console.log("=== CREATE COURSE DEBUG ===");
+    console.log("Request body:", req.body);
+    console.log("Request file exists:", !!req.file);
+    console.log("Request user:", req.user?.userId);
+    console.log("Content-Type header:", req.headers["content-type"]);
+    console.log("Request files (if using multer fields):", req.files);
+    console.log("All request headers:", req.headers);
+
+    // Log all properties of req to see what's available
+    console.log("Available req properties:", Object.keys(req));
+
+    if (req.file) {
+      console.log("File details:", {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        buffer: !!req.file.buffer,
+        bufferLength: req.file.buffer?.length,
+      });
+    } else {
+      console.log("No file received in multer req.file");
+      console.log("Checking if file exists elsewhere in request...");
+    }
+
     const { title, description, category, tags } = req.body;
 
     const mentorId = req.user.userId; // From auth middleware
@@ -24,12 +49,23 @@ export const createCourse = async (req, res) => {
       url: null,
     };
 
+    console.log("Processing file upload, file exists:", !!file);
+
     if (file) {
+      console.log("File details:", {
+        fieldname: file.fieldname,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      });
+
       try {
         const cloudinaryResult = await uploadToCloudinary(file.buffer, {
           folder: "ajarin/course-covers",
           transformation: [{ width: 800, height: 450, crop: "fill" }, { quality: "auto" }, { format: "auto" }],
         });
+
+        console.log("Cloudinary upload successful:", cloudinaryResult.public_id);
 
         coverData = {
           public_id: cloudinaryResult.public_id,
@@ -42,12 +78,24 @@ export const createCourse = async (req, res) => {
           message: "Failed to upload cover image. Please try again.",
         });
       }
+    } else {
+      console.log("No file provided, using default cover data");
     }
 
     // Parse tags if they come as strings
-    const parsedTags = Array.isArray(tags) ? tags.map((t) => t.trim().toLowerCase()) : tags ? tags.split(",").map((t) => t.trim().toLowerCase()) : [];
+    const parsedTags = Array.isArray(tags) ? tags.map((t) => t.trim().toLowerCase()) : tags && typeof tags === "string" ? tags.split(",").map((t) => t.trim().toLowerCase()) : [];
 
     // Create course
+    console.log("Creating course with data:", {
+      mentor_id: mentorId,
+      title: title?.trim(),
+      description: description?.trim()?.substring(0, 50) + "...",
+      category,
+      cover_url: coverData,
+      tags: parsedTags,
+      status: "draft",
+    });
+
     const newCourse = new courseModel({
       mentor_id: mentorId,
       title: title.trim(),
@@ -58,7 +106,9 @@ export const createCourse = async (req, res) => {
       status: "draft", // Default to draft
     });
 
+    console.log("Attempting to save course...");
     await newCourse.save();
+    console.log("Course saved successfully with ID:", newCourse._id);
 
     // Populate mentor info for response
     await newCourse.populate("mentor_id", "fullname username avatar");
@@ -71,7 +121,10 @@ export const createCourse = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Create course error:", error);
+    console.error("=== CREATE COURSE ERROR ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
 
     // Handle validation errors
     if (error.name === "ValidationError") {
@@ -96,9 +149,25 @@ export const createCourse = async (req, res) => {
       });
     }
 
+    // Handle Cloudinary errors
+    if (error.message && error.message.includes("cloudinary")) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload image. Please try again.",
+      });
+    }
+
+    // Handle database errors
+    if (error.name === "MongoError" || error.name === "MongoServerError") {
+      return res.status(500).json({
+        success: false,
+        message: "Database error occurred",
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: "Server error during course creation",
+      message: "Server error during course creation: " + error.message,
     });
   }
 };
@@ -200,9 +269,24 @@ export const getCourse = async (req, res) => {
 // Update course
 export const updateCourse = async (req, res) => {
   try {
+    console.log("=== UPDATE COURSE DEBUG ===");
+    console.log("Course ID:", req.params.id);
+    console.log("Request body:", req.body);
+    console.log("Request file exists:", !!req.file);
+    console.log("Request user:", req.user?.userId);
+
     const { id } = req.params;
     const mentorId = req.user.userId;
     const file = req.file;
+
+    if (req.file) {
+      console.log("File details:", {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+      });
+    }
 
     // Find course and check ownership
     const course = await courseModel.findById(id);
@@ -259,7 +343,7 @@ export const updateCourse = async (req, res) => {
 
     // Parse and update tags
     if (tags) {
-      course.tags = Array.isArray(tags) ? tags.map((t) => t.trim().toLowerCase()) : tags.split(",").map((t) => t.trim().toLowerCase());
+      course.tags = Array.isArray(tags) ? tags.map((t) => t.trim().toLowerCase()) : typeof tags === "string" ? tags.split(",").map((t) => t.trim().toLowerCase()) : [];
     }
 
     await course.save();
@@ -296,6 +380,10 @@ export const updateCourse = async (req, res) => {
 // Delete course
 export const deleteCourse = async (req, res) => {
   try {
+    console.log("=== DELETE COURSE DEBUG ===");
+    console.log("Course ID:", req.params.id);
+    console.log("Request user:", req.user?.userId);
+
     const { id } = req.params;
     const mentorId = req.user.userId;
 
@@ -387,6 +475,11 @@ export const getMyCourses = async (req, res) => {
 // Publish/unpublish course
 export const toggleCourseStatus = async (req, res) => {
   try {
+    console.log("=== TOGGLE COURSE STATUS DEBUG ===");
+    console.log("Course ID:", req.params.id);
+    console.log("New status:", req.body.status);
+    console.log("Request user:", req.user?.userId);
+
     const { id } = req.params;
     const { status } = req.body;
     const mentorId = req.user.userId;

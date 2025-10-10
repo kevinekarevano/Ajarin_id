@@ -1,23 +1,28 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Users, Clock, Star, Plus, Edit, Trash2, Eye, Upload, Search, Filter, MoreVertical, Calendar, TrendingUp, Award, Settings } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BookOpen, Users, Clock, Star, Plus, Edit, Trash2, Eye, Upload, Search, Filter, MoreVertical, Calendar, TrendingUp, Award, Settings, Archive, AlertTriangle } from "lucide-react";
 import useAuthStore from "@/store/authStore";
 import useCourseStore from "@/store/courseStore";
 import { CoursesGridSkeleton, CourseError, EmptyCoursesState } from "@/components/course/CourseStates";
 import { CourseFormDialog } from "@/components/course/CourseFormDialog";
 
 export default function MyCourseManagementPage() {
+  const navigate = useNavigate();
   const { user, isAuthenticated, token } = useAuthStore();
-  const { courses, loading, error, filters, pagination, fetchMyCourses, createCourse, updateCourse, deleteCourse, setFilters, clearError } = useCourseStore();
+  const { courses, loading, error, filters, pagination, fetchMyCourses, createCourse, updateCourse, deleteCourse, updateCourseStatus, setFilters, clearError } = useCourseStore();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseToDelete, setCourseToDelete] = useState(null);
 
   // Safe wrapper for fetchMyCourses
   const safeFetchMyCourses = async () => {
@@ -88,10 +93,33 @@ export default function MyCourseManagementPage() {
     }
   };
 
-  // Handle course deletion
-  const handleDeleteCourse = async (courseId) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus course ini?")) {
-      await deleteCourse(courseId);
+  // Open delete confirmation dialog
+  const openDeleteDialog = (course) => {
+    setCourseToDelete(course);
+    setShowDeleteDialog(true);
+  };
+
+  // Handle course deletion confirmation
+  const confirmDeleteCourse = async () => {
+    if (courseToDelete) {
+      await deleteCourse(courseToDelete._id || courseToDelete.id);
+      setShowDeleteDialog(false);
+      setCourseToDelete(null);
+    }
+  };
+
+  // Cancel delete operation
+  const cancelDeleteCourse = () => {
+    setShowDeleteDialog(false);
+    setCourseToDelete(null);
+  };
+
+  // Handle course status change
+  const handleCourseStatusChange = async (courseId, newStatus) => {
+    const result = await updateCourseStatus(courseId, newStatus);
+    if (result.success) {
+      // Refresh the courses list to reflect the change
+      await safeFetchMyCourses();
     }
   };
 
@@ -143,7 +171,7 @@ export default function MyCourseManagementPage() {
             <p className="text-xl text-purple-100">Buat, edit, dan kelola semua kursus yang Anda ajarkan di platform Ajarin.id</p>
           </div>
           <div className="mt-6 lg:mt-0">
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-white text-purple-600 hover:bg-purple-50">
+            <Button onClick={() => navigate("/dashboard/create-course")} className="bg-white text-purple-600 hover:bg-purple-50">
               <Plus className="w-4 h-4 mr-2" />
               Buat Kursus Baru
             </Button>
@@ -261,7 +289,7 @@ export default function MyCourseManagementPage() {
         />
       ) : filteredCourses.length === 0 ? (
         <EmptyCoursesState
-          onCreateCourse={() => setShowCreateDialog(true)}
+          onCreateCourse={() => navigate("/dashboard/create-course")}
           title={courses.length === 0 ? "Belum ada kursus" : "Tidak ada kursus yang ditemukan"}
           description={courses.length === 0 ? "Mulai berbagi pengetahuan dengan membuat kursus pertama Anda" : "Coba ubah filter pencarian atau buat kursus baru"}
         />
@@ -282,13 +310,44 @@ export default function MyCourseManagementPage() {
                   </div>
 
                   {/* Actions Menu */}
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <Button size="sm" variant="ghost" className="bg-black/50 hover:bg-black/70 text-white p-2" onClick={() => openEditDialog(course)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="bg-black/50 hover:bg-black/70 text-white p-2" onClick={() => handleDeleteCourse(course._id || course.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div className="absolute top-3 right-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost" className="bg-black/50 hover:bg-black/70 text-white p-2">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 bg-slate-800 border-slate-700">
+                        <DropdownMenuItem onClick={() => openEditDialog(course)} className="text-white hover:bg-slate-700 cursor-pointer">
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Course
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="bg-slate-700" />
+
+                        <DropdownMenuItem onClick={() => handleCourseStatusChange(course._id || course.id, "draft")} className="text-white hover:bg-slate-700 cursor-pointer" disabled={course.status === "draft"}>
+                          <Settings className="w-4 h-4 mr-2" />
+                          Set as Draft
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => handleCourseStatusChange(course._id || course.id, "published")} className="text-white hover:bg-slate-700 cursor-pointer" disabled={course.status === "published"}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Publish Course
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => handleCourseStatusChange(course._id || course.id, "archived")} className="text-white hover:bg-slate-700 cursor-pointer" disabled={course.status === "archived"}>
+                          <Archive className="w-4 h-4 mr-2" />
+                          Archive Course
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="bg-slate-700" />
+
+                        <DropdownMenuItem onClick={() => openDeleteDialog(course)} className="text-red-400 hover:bg-red-900/20 cursor-pointer">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Course
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
@@ -347,6 +406,62 @@ export default function MyCourseManagementPage() {
       <CourseFormDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} onSubmit={handleCreateCourse} loading={loading} mode="create" />
 
       <CourseFormDialog open={showEditDialog} onOpenChange={setShowEditDialog} onSubmit={handleEditCourse} loading={loading} mode="edit" initialData={selectedCourse} />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-700 text-white">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-3 text-red-400 text-lg">
+              <div className="w-10 h-10 bg-red-600/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              Konfirmasi Hapus Course
+            </DialogTitle>
+            <DialogDescription className="text-slate-300 mt-2 leading-relaxed">Tindakan ini tidak dapat dibatalkan. Course akan dihapus secara permanen dari sistem beserta semua data yang terkait.</DialogDescription>
+          </DialogHeader>
+
+          {courseToDelete && (
+            <div className="py-4 border-t border-b border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-600/50">
+                <h4 className="font-medium text-slate-200 mb-3 text-sm uppercase tracking-wide">Course yang akan dihapus:</h4>
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {courseToDelete.cover_url?.url ? <img src={courseToDelete.cover_url.url} alt={courseToDelete.title} className="w-full h-full object-cover" /> : <BookOpen className="w-8 h-8 text-slate-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-semibold text-white mb-1 line-clamp-2">{courseToDelete.title}</h5>
+                    <p className="text-sm text-slate-400 line-clamp-2 mb-2">{courseToDelete.description?.length > 80 ? `${courseToDelete.description.substring(0, 80)}...` : courseToDelete.description || "Tidak ada deskripsi"}</p>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span>Status: {courseToDelete.status}</span>
+                      <span>•</span>
+                      <span>{courseToDelete.total_materials || 0} materi</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-3 pt-4">
+            <Button variant="outline" onClick={cancelDeleteCourse} disabled={loading} className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteCourse} disabled={loading} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50">
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Menghapus...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Ya, Hapus Course
+                </div>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
