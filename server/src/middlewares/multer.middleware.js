@@ -42,6 +42,27 @@ const materialFilter = (req, file, cb) => {
   }
 };
 
+// File filter untuk assignment questions (PDF, DOC, images)
+const assignmentFilter = (req, file, cb) => {
+  const allowedTypes = {
+    // Images
+    "image/jpeg": true,
+    "image/jpg": true,
+    "image/png": true,
+
+    // Documents
+    "application/pdf": true,
+    "application/msword": true,
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+  };
+
+  if (allowedTypes[file.mimetype]) {
+    return cb(null, true);
+  } else {
+    cb(new Error("File type not supported for assignments. Allowed: PDF, DOC, DOCX, JPG, PNG"));
+  }
+};
+
 // File filter untuk semua jenis file
 const allFileFilter = (req, file, cb) => {
   // Accept all file types
@@ -72,6 +93,16 @@ export const upload = {
       fileFilter: materialFilter,
       limits: {
         fileSize: 100 * 1024 * 1024, // 100MB for videos and large documents
+      },
+    }).single(fieldName),
+
+  // Single assignment file upload (questions: PDF, DOC, images)
+  singleAssignment: (fieldName) =>
+    multer({
+      ...baseConfig,
+      fileFilter: assignmentFilter,
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB for assignment question files
       },
     }).single(fieldName),
 

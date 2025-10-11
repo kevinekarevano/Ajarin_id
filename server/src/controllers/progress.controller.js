@@ -93,9 +93,7 @@ export const toggleCompletion = async (req, res) => {
     }
 
     // Return updated progress
-    const updatedProgress = await MaterialProgress.findById(progress._id)
-      .populate("material_id", "title type")
-      .populate("course_id", "title");
+    const updatedProgress = await MaterialProgress.findById(progress._id).populate("material_id", "title type").populate("course_id", "title");
 
     res.status(200).json({
       success: true,
@@ -181,7 +179,7 @@ export const getCourseProgress = async (req, res) => {
 
     // Get course progress overview
     const progressOverview = await MaterialProgress.getUserCourseProgress(userId, courseId);
-    
+
     // Get detailed progress for each material
     const detailedProgress = await MaterialProgress.find({
       user_id: userId,
@@ -200,7 +198,8 @@ export const getCourseProgress = async (req, res) => {
           completion_percentage: 0,
           average_rating: 0,
         },
-        materials: detailedProgress,
+        material_progress: detailedProgress, // Changed from 'materials' to 'material_progress'
+        updated_at: new Date(),
       },
     });
   } catch (error) {

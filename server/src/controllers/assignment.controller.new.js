@@ -101,15 +101,8 @@ export const updateAssignment = async (req, res) => {
   try {
     const { assignmentId } = req.params;
     const mentorId = req.user.userId;
-    const { title, description, instructions, is_published, publish_date, max_points } = req.body;
+    const { title, description, instructions } = req.body;
     const questionFile = req.file;
-
-    console.log("Update assignment request:", {
-      assignmentId,
-      mentorId,
-      body: req.body,
-      hasFile: !!questionFile,
-    });
 
     // Find assignment and verify ownership
     const assignment = await Assignment.findById(assignmentId).populate("course_id");
@@ -168,19 +161,6 @@ export const updateAssignment = async (req, res) => {
     assignment.title = title || assignment.title;
     assignment.description = description || assignment.description;
     assignment.instructions = instructions || assignment.instructions;
-
-    // Update publication status
-    if (typeof is_published !== "undefined") {
-      assignment.is_published = is_published === "true" || is_published === true;
-    }
-
-    if (publish_date) {
-      assignment.publish_date = new Date(publish_date);
-    }
-
-    if (max_points) {
-      assignment.max_points = parseInt(max_points);
-    }
 
     await assignment.save();
 
@@ -304,22 +284,9 @@ export const getCourseAssignments = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Build query filter
-    const assignmentFilter = { course_id: courseId };
+    const assignments = await Assignment.find({ course_id: courseId }).populate("mentor_id", "fullname username").sort({ order: 1 }).limit(parseInt(limit)).skip(skip);
 
-    // For students, only show published assignments
-    if (!isMentor) {
-      assignmentFilter.is_published = true;
-      console.log("Student requesting assignments - filtering for published only:", assignmentFilter);
-    } else {
-      console.log("Mentor requesting assignments - showing all:", assignmentFilter);
-    }
-
-    const assignments = await Assignment.find(assignmentFilter).populate("mentor_id", "fullname username").sort({ order: 1 }).limit(parseInt(limit)).skip(skip);
-
-    console.log(`Found ${assignments.length} assignments for user role: ${isMentor ? "mentor" : "student"}`);
-
-    const totalAssignments = await Assignment.countDocuments(assignmentFilter);
+    const totalAssignments = await Assignment.countDocuments({ course_id: courseId });
     const totalPages = Math.ceil(totalAssignments / parseInt(limit));
 
     // If student, add submission status for each assignment
@@ -711,82 +678,6 @@ export const getMySubmissions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching submissions",
-    });
-  }
-};
-
-// Get assignment details by ID (for students to view assignment details)
-export const getAssignmentDetails = async (req, res) => {
-  try {
-    const { assignmentId } = req.params;
-    const userId = req.user.userId;
-
-    console.log("Fetching assignment details for ID:", assignmentId);
-    console.log("User ID:", userId);
-
-    const assignment = await Assignment.findById(assignmentId).populate("course_id", "title mentor_id").populate("mentor_id", "fullname username");
-
-    if (!assignment) {
-      console.log("Assignment not found");
-      return res.status(404).json({
-        success: false,
-        message: "Assignment not found",
-      });
-    }
-
-    console.log("Assignment found:", assignment.title);
-    console.log("Course ID:", assignment.course_id._id);
-    console.log("Mentor ID:", assignment.mentor_id._id);
-
-    // Check if user is enrolled in the course (for students) or is the mentor
-    const enrollment = await enrollmentModel.findOne({
-      learner_id: userId,
-      course_id: assignment.course_id._id,
-    });
-
-    console.log("Enrollment found:", !!enrollment);
-
-    const isMentor = assignment.mentor_id._id.toString() === userId;
-    console.log("Is mentor:", isMentor);
-
-    if (!enrollment && !isMentor) {
-      console.log("Access denied: not enrolled and not mentor");
-      return res.status(403).json({
-        success: false,
-        message: "You must be enrolled in this course to view this assignment",
-      });
-    }
-
-    // If user is a student, only show published assignments
-    if (!isMentor && !assignment.is_published) {
-      return res.status(404).json({
-        success: false,
-        message: "Assignment not found",
-      });
-    }
-
-    // Check if student has already submitted this assignment
-    let userSubmission = null;
-    if (!isMentor) {
-      userSubmission = await AssignmentSubmission.findOne({
-        assignment_id: assignmentId,
-        student_id: userId,
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        assignment,
-        userSubmission,
-        canSubmit: !isMentor && assignment.is_published && !userSubmission,
-      },
-    });
-  } catch (error) {
-    console.error("Get assignment details error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching assignment details",
     });
   }
 };

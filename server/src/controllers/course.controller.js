@@ -447,13 +447,43 @@ export const getMyCourses = async (req, res) => {
     // Get courses
     const courses = await courseModel.find(filter).populate("mentor_id", "fullname username avatar").skip(skip).limit(parseInt(limit)).sort(sort);
 
+    // Import Assignment model dynamically to avoid circular dependency
+    const { default: assignmentModel } = await import("../models/assignment.model.js");
+    const { default: materialModel } = await import("../models/material.model.js");
+
+    // Add assignment and material counts for each course
+    const coursesWithCounts = await Promise.all(
+      courses.map(async (course) => {
+        const courseObj = course.toObject();
+
+        // Count assignments for this course
+        const assignmentCount = await assignmentModel.countDocuments({ course_id: course._id });
+
+        // Count materials for this course (if material model exists)
+        let materialCount = 0;
+        try {
+          materialCount = await materialModel.countDocuments({ course_id: course._id });
+        } catch (error) {
+          console.log("Material model not available yet:", error.message);
+        }
+
+        console.log(`Course ${course.title} - Assignments: ${assignmentCount}, Materials: ${materialCount}`);
+
+        return {
+          ...courseObj,
+          total_assignments: assignmentCount,
+          total_materials: materialCount,
+        };
+      })
+    );
+
     const totalCourses = await courseModel.countDocuments(filter);
     const totalPages = Math.ceil(totalCourses / parseInt(limit));
 
     res.status(200).json({
       success: true,
       data: {
-        courses,
+        courses: coursesWithCounts,
         pagination: {
           currentPage: parseInt(page),
           totalPages,

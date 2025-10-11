@@ -255,6 +255,11 @@ materialSchema.statics.findByCourse = function (courseId, options = {}) {
     filter.type = options.type;
   }
 
+  // If freeOnly is true, only show free preview materials
+  if (options.freeOnly === true) {
+    filter.free_preview = true;
+  }
+
   return this.find(filter).sort({ chapter: 1, order: 1 }).populate("mentor_id", "fullname username avatar");
 };
 

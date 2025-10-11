@@ -5,7 +5,7 @@ const assignmentSubmissionSchema = new mongoose.Schema(
     // References
     assignment_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Material", // Assignment is a type of Material
+      ref: "Assignment", // Reference to Assignment model
       required: [true, "Assignment ID is required"],
     },
 
@@ -36,7 +36,7 @@ const assignmentSubmissionSchema = new mongoose.Schema(
         maxlength: [5000, "Text content cannot exceed 5000 characters"],
       },
 
-      // For file submissions
+      // For file submissions (single file - backward compatibility)
       file_info: {
         public_id: String,
         url: String,
@@ -45,6 +45,18 @@ const assignmentSubmissionSchema = new mongoose.Schema(
         file_size: Number, // in bytes
         file_type: String, // MIME type
       },
+
+      // For multiple file submissions
+      files_info: [
+        {
+          public_id: String,
+          url: String,
+          file_name: String,
+          file_extension: String,
+          file_size: Number, // in bytes
+          file_type: String, // MIME type
+        },
+      ],
 
       // For URL submissions
       url_submission: {
@@ -139,13 +151,6 @@ const assignmentSubmissionSchema = new mongoose.Schema(
       default: null,
     },
 
-    due_date: {
-      type: Date,
-      required: function () {
-        return this.status === "submitted";
-      },
-    },
-
     // Revision History
     revisions: [
       {
@@ -217,11 +222,7 @@ assignmentSubmissionSchema.pre("save", function (next) {
   // Set submitted_at when status changes to submitted
   if (this.status === "submitted" && !this.submitted_at) {
     this.submitted_at = new Date();
-
-    // Check if submission is late
-    if (this.due_date && this.submitted_at > this.due_date) {
-      this.is_late = true;
-    }
+    // Late submission logic removed (no deadline system)
   }
 
   // Auto-calculate letter grade based on score
@@ -252,10 +253,7 @@ assignmentSubmissionSchema.methods.submit = function () {
     this.status = "submitted";
     this.submitted_at = new Date();
 
-    // Check if late
-    if (this.due_date && this.submitted_at > this.due_date) {
-      this.is_late = true;
-    }
+    // Late submission logic removed (no deadline system)
   }
   return this.save();
 };
@@ -310,7 +308,7 @@ assignmentSubmissionSchema.statics.getStudentSubmissions = function (studentId, 
   const filter = { student_id: studentId };
   if (courseId) filter.course_id = courseId;
 
-  return this.find(filter).populate("assignment_id", "title description due_date max_points").populate("course_id", "title").sort({ created_at: -1 });
+  return this.find(filter).populate("assignment_id", "title description max_points").populate("course_id", "title").sort({ created_at: -1 });
 };
 
 assignmentSubmissionSchema.statics.getGradingQueue = function (mentorId, courseId) {
@@ -381,9 +379,7 @@ assignmentSubmissionSchema.virtual("status_badge").get(function () {
 // Virtual for late status
 assignmentSubmissionSchema.virtual("late_status").get(function () {
   if (this.is_late) return "⏰ Late Submission";
-  if (this.due_date && new Date() > this.due_date && this.status === "draft") {
-    return "⚠️ Overdue";
-  }
+  // Deadline system removed
   return "";
 });
 

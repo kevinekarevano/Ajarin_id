@@ -13,7 +13,7 @@ export const setInitializationMode = (mode) => {
 // Create axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
-  timeout: 10000,
+  timeout: 600000, // Increased to 10 minutes for large file uploads
   headers: {
     "Content-Type": "application/json",
   },

@@ -79,6 +79,19 @@ const useCourseStore = create(
           console.log("Response received:", response.data);
 
           if (response.data.success) {
+            console.log("📊 Courses with assignment counts:", response.data.data.courses);
+
+            // Debug first course assignment count
+            if (response.data.data.courses.length > 0) {
+              const firstCourse = response.data.data.courses[0];
+              console.log("🔢 First course assignment data:", {
+                title: firstCourse.title,
+                total_assignments: firstCourse.total_assignments,
+                total_materials: firstCourse.total_materials,
+                total_tasks: firstCourse.total_tasks,
+              });
+            }
+
             set({
               courses: response.data.data.courses,
               pagination: response.data.data.pagination,
@@ -103,6 +116,41 @@ const useCourseStore = create(
           if (error.response?.status !== 401) {
             toast.error("Gagal memuat kursus");
           }
+        }
+      },
+
+      // Fetch public courses for browsing
+      fetchPublicCourses: async (params = {}) => {
+        try {
+          set({ loading: true, error: null });
+
+          const queryParams = new URLSearchParams({
+            page: params.page || 1,
+            limit: params.limit || 20,
+            status: "published", // Only fetch published courses
+            ...(params.category && params.category !== "all" && { category: params.category }),
+            ...(params.search && { search: params.search }),
+            ...(params.sortBy && { sortBy: params.sortBy }),
+            ...(params.sortOrder && { sortOrder: params.sortOrder }),
+          });
+
+          const response = await api.get(`/courses?${queryParams}`);
+
+          if (response.data.success) {
+            set({
+              courses: response.data.data.courses,
+              pagination: response.data.data.pagination,
+              loading: false,
+            });
+            return response.data.data;
+          }
+        } catch (error) {
+          console.error("Error fetching public courses:", error);
+          set({
+            error: error.response?.data?.message || error.message || "Gagal memuat kursus",
+            loading: false,
+          });
+          throw error;
         }
       },
 
@@ -369,6 +417,20 @@ const useCourseStore = create(
             limit: 10,
           },
         }),
+
+      // Get single course by ID
+      getCourseById: async (courseId) => {
+        try {
+          const response = await api.get(`/courses/${courseId}`);
+          if (response.data.success) {
+            return response.data.data;
+          }
+          throw new Error("Failed to fetch course");
+        } catch (error) {
+          console.error("Error fetching course:", error);
+          throw error;
+        }
+      },
 
       // Clear error
       clearError: () => set({ error: null }),

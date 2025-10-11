@@ -27,7 +27,18 @@ export const createMaterial = async (req, res) => {
     const mentorId = req.user.userId;
     const file = req.file;
 
-    console.log("Creating material:", { type, content_url, hasFile: !!file });
+    console.log("Creating material:", {
+      type,
+      content_url,
+      hasFile: !!file,
+      fileInfo: file
+        ? {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+          }
+        : null,
+    });
 
     // Validate required fields
     if (!course_id || !title || !type) {
@@ -134,14 +145,27 @@ export const createMaterial = async (req, res) => {
 
         const cloudinaryResult = await uploadToCloudinary(file.buffer, uploadOptions);
 
+        console.log("Cloudinary upload result:", {
+          public_id: cloudinaryResult.public_id,
+          url: cloudinaryResult.url,
+          bytes: cloudinaryResult.bytes,
+          format: cloudinaryResult.format,
+          originalFileSize: file.size,
+        });
+
         fileInfo = {
           public_id: cloudinaryResult.public_id,
           url: cloudinaryResult.url,
-          file_size: file.size,
+          secure_url: cloudinaryResult.secure_url, // Add secure URL
+          file_size: file.size, // Original file size
           file_type: file.mimetype,
           file_name: file.originalname, // Store original filename
           file_extension: fileExtension,
+          bytes: cloudinaryResult.bytes, // Cloudinary file size
+          format: cloudinaryResult.format, // Actual format from Cloudinary
         };
+
+        console.log("Final fileInfo:", fileInfo);
       } catch (cloudinaryError) {
         console.error("Cloudinary upload error:", cloudinaryError);
         return res.status(500).json({
@@ -218,11 +242,11 @@ export const createMaterial = async (req, res) => {
   }
 };
 
-// Get course materials (for students and public)
+// Get course materials (for students and mentors)
 export const getCourseMaterials = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user?.userId; // Optional auth
+    const userId = req.user?.userId;
     const { chapter, type, free_only } = req.query;
 
     // Check if course exists
@@ -532,14 +556,20 @@ export const reorderMaterials = async (req, res) => {
 
     // Update materials order
     const updatePromises = materials.map(({ id, order, chapter }) => {
-      return materialModel.findOneAndUpdate({ _id: id, course_id: courseId, mentor_id: mentorId }, { order: parseInt(order), chapter: chapter || "General" });
+      return materialModel.findOneAndUpdate({ _id: id, course_id: courseId, mentor_id: mentorId }, { order: parseInt(order), chapter: chapter || "General" }, { new: true });
     });
 
     await Promise.all(updatePromises);
 
+    // Fetch updated materials sorted by order
+    const updatedMaterials = await materialModel.findByCourse(courseId);
+
     res.status(200).json({
       success: true,
       message: "Materials reordered successfully",
+      data: {
+        materials: updatedMaterials,
+      },
     });
   } catch (error) {
     console.error("Reorder materials error:", error);
@@ -662,7 +692,13 @@ export const viewMaterial = async (req, res) => {
     // Handle file-based materials
     if (material.file_info && material.file_info.url) {
       const fileExtension = material.file_info.file_extension?.toLowerCase();
-      const fileName = material.file_info.file_name || `file.${fileExtension}`;
+      const originalFileName = material.file_info.file_name || material.title || "file";
+
+      // Ensure fileName has proper extension
+      let fileName = originalFileName;
+      if (!fileName.includes(".") && fileExtension) {
+        fileName = `${fileName}.${fileExtension}`;
+      }
 
       // Determine how to serve the file based on type and extension
       const viewableInBrowser = ["pdf", "jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExtension);
@@ -690,6 +726,7 @@ export const viewMaterial = async (req, res) => {
             file_name: fileName,
             file_type: material.file_info.file_type,
             action: "view", // Frontend should display inline
+            download_url: `${req.protocol}://${req.get("host")}/api/materials/${material._id}/download`, // Always provide download option
           },
         });
       } else {
@@ -697,16 +734,23 @@ export const viewMaterial = async (req, res) => {
         try {
           console.log("Force downloading file:", fileName);
 
-          const response = await fetch(material.file_info.url);
+          // Use secure URL if available, fallback to regular URL
+          const downloadUrl = material.file_info.secure_url || material.file_info.url;
+
+          const response = await fetch(downloadUrl);
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
 
-          // Set headers for forced download
-          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+          // Set headers for forced download with proper filename encoding
+          const encodedFileName = encodeURIComponent(fileName);
+          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`);
           res.setHeader("Content-Type", material.file_info.file_type || "application/octet-stream");
-          if (material.file_info.file_size) {
-            res.setHeader("Content-Length", material.file_info.file_size);
+
+          // Use file size from Cloudinary if available, fallback to original
+          const fileSize = material.file_info.bytes || material.file_info.file_size;
+          if (fileSize) {
+            res.setHeader("Content-Length", fileSize);
           }
 
           // Stream the file
@@ -730,6 +774,109 @@ export const viewMaterial = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while viewing material",
+    });
+  }
+};
+
+// Force download material with original filename
+export const downloadMaterial = async (req, res) => {
+  try {
+    const { materialId } = req.params;
+    const userId = req.user?.userId;
+
+    // Check if user is authenticated
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "You must be logged in to download this material",
+      });
+    }
+
+    const material = await materialModel.findById(materialId).populate("course_id", "title mentor_id").populate("mentor_id", "fullname username");
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: "Material not found",
+      });
+    }
+
+    // Check access permissions
+    const isMentor = material.mentor_id._id.toString() === userId;
+    let isEnrolled = false;
+
+    if (!isMentor) {
+      const enrollment = await enrollmentModel.findOne({
+        learner_id: userId,
+        course_id: material.course_id._id,
+      });
+      isEnrolled = !!enrollment;
+    }
+
+    if (!isEnrolled && !isMentor) {
+      return res.status(403).json({
+        success: false,
+        message: "You need to enroll in this course to download this material",
+      });
+    }
+
+    // Ensure it's a file-based material
+    if (!material.file_info || !material.file_info.url) {
+      return res.status(400).json({
+        success: false,
+        message: "This material doesn't have a downloadable file",
+      });
+    }
+
+    try {
+      // Get original filename
+      const fileExtension = material.file_info.file_extension?.toLowerCase();
+      const originalFileName = material.file_info.file_name || material.title || "file";
+
+      // Ensure fileName has proper extension
+      let fileName = originalFileName;
+      if (!fileName.includes(".") && fileExtension) {
+        fileName = `${fileName}.${fileExtension}`;
+      }
+
+      console.log("Forcing download with filename:", fileName);
+
+      // Use secure URL if available, fallback to regular URL
+      const downloadUrl = material.file_info.secure_url || material.file_info.url;
+
+      // Fetch file from Cloudinary
+      const response = await fetch(downloadUrl);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Set proper headers for forced download with correct filename
+      const encodedFileName = encodeURIComponent(fileName);
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"; filename*=UTF-8''${encodedFileName}`);
+      res.setHeader("Content-Type", material.file_info.file_type || "application/octet-stream");
+      res.setHeader("Cache-Control", "no-cache"); // Prevent caching for downloads
+
+      // Use file size from Cloudinary if available, fallback to original
+      const fileSize = material.file_info.bytes || material.file_info.file_size;
+      if (fileSize) {
+        res.setHeader("Content-Length", fileSize);
+      }
+
+      // Stream the file content
+      response.body.pipe(res);
+    } catch (error) {
+      console.error("Error downloading material:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error downloading file",
+      });
+    }
+  } catch (error) {
+    console.error("Download material error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while downloading material",
     });
   }
 };
@@ -785,8 +932,11 @@ export const servePDF = async (req, res) => {
     }
 
     try {
+      // Use secure URL if available, fallback to regular URL
+      const pdfUrl = material.file_info.secure_url || material.file_info.url;
+
       // Fetch PDF from Cloudinary
-      const response = await fetch(material.file_info.url);
+      const response = await fetch(pdfUrl);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -797,8 +947,10 @@ export const servePDF = async (req, res) => {
       res.setHeader("Content-Disposition", "inline"); // This makes it view instead of download
       res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
 
-      if (material.file_info.file_size) {
-        res.setHeader("Content-Length", material.file_info.file_size);
+      // Use file size from Cloudinary if available, fallback to original
+      const fileSize = material.file_info.bytes || material.file_info.file_size;
+      if (fileSize) {
+        res.setHeader("Content-Length", fileSize);
       }
 
       // Stream the PDF content

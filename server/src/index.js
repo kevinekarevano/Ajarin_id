@@ -15,6 +15,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Increase timeout for large file uploads
+app.use((req, res, next) => {
+  // Set timeout to 10 minutes for file uploads
+  if (req.url.includes("/materials") && req.method === "POST") {
+    req.setTimeout(600000); // 10 minutes
+    res.setTimeout(600000); // 10 minutes
+  }
+  next();
+});
+
 // DB Connection
 connectDB();
 
@@ -26,8 +36,13 @@ app.use(
   })
 );
 
-// Parse URL-encoded data
-app.use(express.urlencoded({ extended: true }));
+// Parse URL-encoded data with increased limit
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "100mb",
+  })
+);
 
 // Parse JSON data only for non-multipart requests
 app.use((req, res, next) => {
@@ -35,8 +50,8 @@ app.use((req, res, next) => {
     // Skip JSON parsing for multipart requests, let multer handle it
     next();
   } else {
-    // Use JSON parser for other requests
-    express.json()(req, res, next);
+    // Use JSON parser for other requests with increased limit
+    express.json({ limit: "100mb" })(req, res, next);
   }
 });
 
