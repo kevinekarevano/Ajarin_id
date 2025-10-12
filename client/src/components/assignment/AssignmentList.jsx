@@ -130,6 +130,10 @@ export function AssignmentList({ courseId, onCreateAssignment, onEditAssignment,
     navigate(`/dashboard/courses/${courseId}/assignments/${assignmentId}`);
   };
 
+  const handleViewSubmissions = (assignmentId) => {
+    navigate(`/dashboard/courses/${courseId}/assignments/${assignmentId}/submissions`);
+  };
+
   // Handle render errors
   if (renderError) {
     return (
@@ -296,7 +300,7 @@ export function AssignmentList({ courseId, onCreateAssignment, onEditAssignment,
                           )}
 
                           {userRole === "mentor" && (
-                            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700" onClick={() => handleViewSubmissions(assignment._id)}>
                               <Users className="w-4 h-4 mr-1" />
                               Lihat Submissions
                             </Button>

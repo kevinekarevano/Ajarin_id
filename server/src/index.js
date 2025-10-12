@@ -11,6 +11,7 @@ import progressRoutes from "./routes/progress.routes.js";
 import assignmentRoutes from "./routes/assignment.routes.js";
 import discussionRoutes from "./routes/discussion.routes.js";
 import replyRoutes from "./routes/reply.routes.js";
+import certificateRoutes from "./routes/certificate.routes.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,8 +65,9 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/materials", materialRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/assignments", assignmentRoutes);
-app.use("/api/forum", discussionRoutes);
-app.use("/api/forum", replyRoutes);
+app.use("/api/discussions", discussionRoutes);
+app.use("/api/replies", replyRoutes);
+app.use("/api/certificates", certificateRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({

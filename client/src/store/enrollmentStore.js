@@ -200,6 +200,46 @@ const useEnrollmentStore = create(
       }
     },
 
+    // Safe get enrollment details - doesn't throw for instructors
+    safeGetEnrollmentDetails: async (courseId, userId) => {
+      try {
+        const response = await api.get(`/enrollments/course/${courseId}`);
+        return {
+          success: true,
+          enrollment: response.data.data.enrollment,
+          isInstructor: false,
+        };
+      } catch (error) {
+        // If enrollment fails, check if user is the instructor
+        try {
+          const courseResponse = await api.get(`/courses/${courseId}`);
+          const course = courseResponse.data.data;
+
+          if (course && course.mentor_id === userId) {
+            return {
+              success: true,
+              enrollment: {
+                role: "instructor",
+                mentor_id: {
+                  _id: userId,
+                  fullname: "You",
+                  headline: "Instructor",
+                },
+                course_id: course,
+                status: "instructor",
+              },
+              isInstructor: true,
+            };
+          }
+        } catch (courseError) {
+          console.error("Course check error:", courseError);
+        }
+
+        console.error("Safe get enrollment details error:", error);
+        throw error;
+      }
+    },
+
     // Get learning statistics
     fetchLearningStats: async () => {
       try {

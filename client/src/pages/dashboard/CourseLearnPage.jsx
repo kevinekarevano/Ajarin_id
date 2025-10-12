@@ -11,8 +11,10 @@ import useCourseStore from "@/store/courseStore";
 import useAuthStore from "@/store/authStore";
 import useMaterialStore from "@/store/materialStore";
 import useAssignmentStore from "@/store/assignmentStore";
+import useCertificateStore from "@/store/certificateStore";
 import { MaterialList } from "@/components/material/MaterialList";
 import { AssignmentList } from "@/components/assignment/AssignmentList";
+import { DiscussionForum } from "@/components/course/DiscussionForum";
 import toast from "react-hot-toast";
 
 export default function CourseLearnPage() {
@@ -26,11 +28,13 @@ export default function CourseLearnPage() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [courseProgress, setCourseProgress] = useState(null);
+  const [certificateEligibility, setCertificateEligibility] = useState(null);
 
   const { getEnrollmentDetails, updateProgress } = useEnrollmentStore();
   const { getCourseById } = useCourseStore();
   const { materials, loading: materialLoading, fetchCourseMaterials, getCourseProgress } = useMaterialStore();
   const { assignments, loading: assignmentLoading, fetchCourseAssignments } = useAssignmentStore();
+  const { checkCertificateEligibility, generateCertificate, loading: certificateLoading } = useCertificateStore();
 
   // Refresh course progress function
   const refreshCourseProgress = async () => {
@@ -80,13 +84,33 @@ export default function CourseLearnPage() {
       try {
         setLoading(true);
 
-        // Get enrollment details first
-        const enrollmentData = await getEnrollmentDetails(courseId);
-        setEnrollment(enrollmentData.enrollment);
-
-        // Get course details
+        // Get course details first
         const courseData = await getCourseById(courseId);
         setCourse(courseData.course);
+
+        // Check if user is the instructor of this course
+        const isInstructor = courseData.course && user && courseData.course.mentor_id === user._id;
+
+        if (isInstructor) {
+          // If user is instructor, set a mock enrollment
+          setEnrollment({
+            role: "instructor",
+            mentor_id: user,
+            course_id: courseData.course,
+            status: "instructor",
+          });
+        } else {
+          // For students, use normal enrollment flow
+          try {
+            const enrollmentData = await getEnrollmentDetails(courseId);
+            setEnrollment(enrollmentData.enrollment);
+          } catch (enrollmentError) {
+            console.error("Enrollment error:", enrollmentError);
+            toast.error("Anda tidak memiliki akses ke kursus ini");
+            navigate("/dashboard/my-courses");
+            return;
+          }
+        }
 
         // Fetch course materials
         await fetchCourseMaterials(courseId);
@@ -94,8 +118,12 @@ export default function CourseLearnPage() {
         // Fetch course assignments
         await fetchCourseAssignments(courseId);
 
-        // Fetch course progress
-        await refreshCourseProgress();
+        // Fetch course progress (only for students)
+        if (!isInstructor) {
+          await refreshCourseProgress();
+          // Check certificate eligibility after progress is loaded
+          setTimeout(() => checkCertificate(), 500);
+        }
       } catch (error) {
         console.error("Failed to load course data:", error);
         toast.error("Gagal memuat data kursus");
@@ -108,7 +136,7 @@ export default function CourseLearnPage() {
     if (courseId) {
       loadData();
     }
-  }, [courseId, getEnrollmentDetails, getCourseById, fetchCourseMaterials, fetchCourseAssignments, navigate]);
+  }, [courseId, getEnrollmentDetails, getCourseById, fetchCourseMaterials, fetchCourseAssignments, navigate, user]);
 
   // Handle tab from URL query parameter
   useEffect(() => {
@@ -163,6 +191,22 @@ export default function CourseLearnPage() {
       refreshCourseProgress();
     }
   }, [activeTab]);
+
+  // Check certificate eligibility when progress changes
+  useEffect(() => {
+    if (courseProgress && enrollment?.role !== "instructor") {
+      console.log("🎓 Progress changed, checking certificate eligibility");
+      checkCertificate();
+    }
+  }, [courseProgress]);
+
+  // Also check when materials are loaded for the first time
+  useEffect(() => {
+    if (materials && materials.length > 0 && courseProgress && enrollment?.role !== "instructor" && !certificateEligibility) {
+      console.log("🎓 Materials and progress loaded, checking certificate eligibility");
+      checkCertificate();
+    }
+  }, [materials, courseProgress, enrollment]);
 
   // Update progress handler
   const handleUpdateProgress = async (newProgress) => {
@@ -230,6 +274,41 @@ export default function CourseLearnPage() {
     return courseProgress.material_progress.filter((p) => p.is_completed).length;
   };
 
+  // Check certificate eligibility
+  const checkCertificate = async () => {
+    if (!courseId || enrollment?.role === "instructor") return;
+
+    console.log("🎓 Checking certificate eligibility for courseId:", courseId);
+    try {
+      const result = await checkCertificateEligibility(courseId);
+      console.log("🎓 Certificate eligibility result:", result);
+      if (result.success) {
+        setCertificateEligibility(result.data);
+        console.log("✅ Certificate eligibility set:", result.data);
+      } else {
+        console.error("❌ Certificate eligibility check failed:", result.error);
+        setCertificateEligibility(null);
+      }
+    } catch (error) {
+      console.error("Error checking certificate eligibility:", error);
+      setCertificateEligibility(null);
+    }
+  };
+
+  // Handle claim certificate
+  const handleClaimCertificate = async () => {
+    try {
+      const result = await generateCertificate(courseId);
+      if (result.success) {
+        toast.success("🎉 Sertifikat berhasil digenerate!");
+        // Refresh eligibility to show claimed status
+        await checkCertificate();
+      }
+    } catch (error) {
+      console.error("Error claiming certificate:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -282,7 +361,7 @@ export default function CourseLearnPage() {
               <div className="flex items-center gap-2 mb-4">
                 <Badge className="bg-blue-600 text-white">{course.category}</Badge>
                 <Badge variant="outline" className="border-green-500 text-green-400">
-                  {enrollment.status === "completed" ? "Selesai" : "Sedang Dipelajari"}
+                  {enrollment.role === "instructor" ? "Mentor" : enrollment.status === "completed" ? "Selesai" : "Sedang Dipelajari"}
                 </Badge>
               </div>
 
@@ -307,78 +386,170 @@ export default function CourseLearnPage() {
               </div>
 
               <div className="mt-6">
-                <p className="text-sm text-blue-200 mb-2">Mentor</p>
+                <p className="text-sm text-blue-200 mb-2">{enrollment.role === "instructor" ? "Anda adalah Mentor" : "Mentor"}</p>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium">{enrollment.mentor_id?.fullname?.charAt(0)}</span>
+                    <span className="text-white font-medium">{enrollment.role === "instructor" ? user?.fullname?.charAt(0) : enrollment.mentor_id?.fullname?.charAt(0)}</span>
                   </div>
                   <div>
-                    <p className="font-medium text-white">{enrollment.mentor_id?.fullname}</p>
-                    <p className="text-sm text-blue-200">{enrollment.mentor_id?.headline || "Mentor"}</p>
+                    <p className="font-medium text-white">{enrollment.role === "instructor" ? user?.fullname : enrollment.mentor_id?.fullname}</p>
+                    <p className="text-sm text-blue-200">{enrollment.role === "instructor" ? user?.headline || "Mentor" : enrollment.mentor_id?.headline || "Mentor"}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Progress Card */}
-            <Card className="bg-black/30 border-slate-600 min-w-[300px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-white">Progress Belajar</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-slate-300">Kemajuan</span>
-                    <span className="text-white font-medium">{calculateProgressPercentage()}%</span>
-                  </div>
-                  <div className="relative w-full h-3 bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        calculateProgressPercentage() === 100 ? "bg-green-500" : calculateProgressPercentage() >= 70 ? "bg-blue-500" : calculateProgressPercentage() >= 30 ? "bg-yellow-500" : "bg-red-500"
-                      }`}
-                      style={{
-                        width: `${calculateProgressPercentage()}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Progress Card - Only show for students */}
+            {enrollment.role !== "instructor" && (
+              <Card className="bg-black/30 border-slate-600 min-w-[300px]">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white">Progress Belajar</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <p className="text-slate-400">Materi Selesai</p>
-                    <p className="text-white font-semibold">
-                      {getCompletedMaterialsCount()}/{materials.length}
-                    </p>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-slate-300">Kemajuan</span>
+                      <span className="text-white font-medium">{calculateProgressPercentage()}%</span>
+                    </div>
+                    <div className="relative w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          calculateProgressPercentage() === 100 ? "bg-green-500" : calculateProgressPercentage() >= 70 ? "bg-blue-500" : calculateProgressPercentage() >= 30 ? "bg-yellow-500" : "bg-red-500"
+                        }`}
+                        style={{
+                          width: `${calculateProgressPercentage()}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-slate-400">Terakhir Akses</p>
-                    <p className="text-white font-semibold">
-                      {enrollment.last_accessed
-                        ? new Date(enrollment.last_accessed).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "short",
-                          })
-                        : "Belum pernah"}
-                    </p>
-                  </div>
-                </div>
 
-                {enrollment.status !== "completed" && (
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setActiveTab("materials")}>
-                    <Play className="w-4 h-4 mr-2" />
-                    {enrollment.progress_percentage === 0 ? "Mulai Belajar" : "Lanjutkan Belajar"}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-400">Materi Selesai</p>
+                      <p className="text-white font-semibold">
+                        {getCompletedMaterialsCount()}/{materials.length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Terakhir Akses</p>
+                      <p className="text-white font-semibold">
+                        {enrollment.last_accessed
+                          ? new Date(enrollment.last_accessed).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                            })
+                          : "Belum pernah"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {enrollment.status !== "completed" && (
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setActiveTab("materials")}>
+                      <Play className="w-4 h-4 mr-2" />
+                      {enrollment.progress_percentage === 0 ? "Mulai Belajar" : "Lanjutkan Belajar"}
+                    </Button>
+                  )}
+
+                  {enrollment.status === "completed" && (
+                    <div className="text-center p-4 bg-green-900/30 border border-green-700 rounded-lg">
+                      <Award className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                      <p className="text-green-400 font-medium">Selamat! Kursus selesai</p>
+                      <p className="text-sm text-green-300">Diselesaikan pada {new Date(enrollment.completed_at).toLocaleDateString("id-ID")}</p>
+                    </div>
+                  )}
+
+                  {/* Certificate Section */}
+                  {calculateProgressPercentage() === 100 && (
+                    <div className="pt-4 border-t border-slate-600">
+                      {certificateEligibility === null ? (
+                        // Loading state while checking eligibility
+                        <div className="text-center p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
+                          <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                          <p className="text-slate-400 text-sm">Checking certificate eligibility...</p>
+                        </div>
+                      ) : certificateEligibility?.eligible && certificateEligibility?.reason === "eligible" ? (
+                        <Button className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-semibold" onClick={handleClaimCertificate} disabled={certificateLoading}>
+                          {certificateLoading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Award className="w-4 h-4 mr-2" />
+                              🎉 Klaim Sertifikat
+                            </>
+                          )}
+                        </Button>
+                      ) : certificateEligibility?.reason === "already_claimed" ? (
+                        <div className="text-center p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                          <Award className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
+                          <p className="text-yellow-400 font-medium text-sm">Sertifikat sudah diklaim</p>
+                          <Button variant="ghost" size="sm" className="mt-2 text-yellow-300 hover:text-yellow-100" onClick={() => navigate("/dashboard/certificates")}>
+                            Lihat Sertifikat
+                          </Button>
+                        </div>
+                      ) : certificateEligibility && !certificateEligibility.eligible && certificateEligibility.reason === "incomplete" ? (
+                        <div className="text-center p-3 bg-slate-700/50 border border-slate-600 rounded-lg">
+                          <Award className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+                          <p className="text-slate-400 font-medium text-sm">Selesaikan semua materi untuk klaim sertifikat</p>
+                          <p className="text-xs text-slate-500 mt-1">Progress: {certificateEligibility.completionPercentage}%</p>
+                        </div>
+                      ) : (
+                        // Fallback: Manual check button
+                        <div className="space-y-2">
+                          <Button 
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold" 
+                            onClick={checkCertificate}
+                            disabled={certificateLoading}
+                          >
+                            <Award className="w-4 h-4 mr-2" />
+                            Check Certificate Eligibility
+                          </Button>
+                          <div className="text-xs text-slate-500 text-center">
+                            Debug: Progress {calculateProgressPercentage()}% | Eligibility: {certificateEligibility ? JSON.stringify(certificateEligibility) : 'null'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Instructor Stats Card - Only show for instructors */}
+            {enrollment.role === "instructor" && (
+              <Card className="bg-black/30 border-slate-600 min-w-[300px]">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white">Statistik Kursus</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-400">Total Siswa</p>
+                      <p className="text-white font-semibold text-2xl">{course.total_enrollments || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Materi</p>
+                      <p className="text-white font-semibold text-2xl">{materials.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Tugas</p>
+                      <p className="text-white font-semibold text-2xl">{assignments.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Rating</p>
+                      <p className="text-white font-semibold text-2xl">{course.rating > 0 ? course.rating.toFixed(1) : "N/A"}</p>
+                    </div>
+                  </div>
+
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => setActiveTab("discussion")}>
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Kelola Diskusi
                   </Button>
-                )}
-
-                {enrollment.status === "completed" && (
-                  <div className="text-center p-4 bg-green-900/30 border border-green-700 rounded-lg">
-                    <Award className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                    <p className="text-green-400 font-medium">Selamat! Kursus selesai</p>
-                    <p className="text-sm text-green-300">Diselesaikan pada {new Date(enrollment.completed_at).toLocaleDateString("id-ID")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -628,15 +799,7 @@ export default function CourseLearnPage() {
 
         {/* Discussion Tab */}
         <TabsContent value="discussion">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Forum Diskusi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-400">Forum diskusi kursus akan ditampilkan di sini. Integrasi dengan discussion system.</p>
-              <Button className="mt-4 bg-blue-600 hover:bg-blue-700">Mulai Diskusi Baru</Button>
-            </CardContent>
-          </Card>
+          <DiscussionForum courseId={courseId} />
         </TabsContent>
       </Tabs>
     </div>

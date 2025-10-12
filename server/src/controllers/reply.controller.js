@@ -1,6 +1,33 @@
 import Reply from "../models/reply.model.js";
 import Discussion from "../models/discussion.model.js";
 import Enrollment from "../models/enrollment.model.js";
+import Course from "../models/course.model.js";
+
+// Helper function to check if user has access to course (either enrolled or is the instructor)
+const checkCourseAccess = async (userId, courseId) => {
+  // Check if user is enrolled in the course
+  const enrollment = await Enrollment.findOne({
+    learner_id: userId,
+    course_id: courseId,
+    status: "active",
+  });
+
+  if (enrollment) {
+    return { hasAccess: true, role: "student" };
+  }
+
+  // Check if user is the instructor of the course
+  const course = await Course.findOne({
+    _id: courseId,
+    mentor_id: userId,
+  });
+
+  if (course) {
+    return { hasAccess: true, role: "instructor" };
+  }
+
+  return { hasAccess: false, role: null };
+};
 
 // Create reply to discussion
 export const createReply = async (req, res) => {
@@ -34,17 +61,13 @@ export const createReply = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: discussion.course_id._id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, discussion.course_id._id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to reply",
+        message: "You must be enrolled in this course or be the instructor to reply",
       });
     }
 
@@ -74,7 +97,7 @@ export const createReply = async (req, res) => {
     // Create reply
     const reply = new Reply({
       discussion_id: discussionId,
-      author_id: req.user.id,
+      author_id: req.user.userId,
       parent_reply_id,
       content: content.trim(),
       mentions,
@@ -83,7 +106,7 @@ export const createReply = async (req, res) => {
     await reply.save();
 
     // Update discussion stats
-    await discussion.addReply(req.user.id);
+    await discussion.addReply(req.user.userId);
 
     // If this is a nested reply, update parent reply stats
     if (parentReply) {
@@ -131,7 +154,7 @@ export const updateReply = async (req, res) => {
     }
 
     // Check if user owns the reply
-    if (reply.author_id.toString() !== req.user.id) {
+    if (reply.author_id.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "You can only edit your own replies",
@@ -193,7 +216,7 @@ export const deleteReply = async (req, res) => {
     }
 
     // Check if user can delete (author or mentor)
-    const canDelete = reply.author_id.toString() === req.user.id || reply.discussion_id.course_id.mentor_id.toString() === req.user.id;
+    const canDelete = reply.author_id.toString() === req.user.userId || reply.discussion_id.course_id.mentor_id.toString() === req.user.userId;
 
     if (!canDelete) {
       return res.status(403).json({
@@ -245,25 +268,21 @@ export const toggleLikeReply = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: reply.discussion_id.course_id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, reply.discussion_id.course_id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to like replies",
+        message: "You must be enrolled in this course or be the instructor to like replies",
       });
     }
 
     // Toggle like
-    await reply.toggleLike(req.user.id);
+    await reply.toggleLike(req.user.userId);
 
     // Check if now liked
-    const isLiked = reply.isLikedBy(req.user.id);
+    const isLiked = reply.isLikedBy(req.user.userId);
 
     res.status(200).json({
       success: true,
@@ -418,17 +437,13 @@ export const getNestedReplies = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: parentReply.discussion_id.course_id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, parentReply.discussion_id.course_id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to view replies",
+        message: "You must be enrolled in this course or be the instructor to view replies",
       });
     }
 
@@ -495,17 +510,13 @@ export const searchReplies = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: discussion.course_id._id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, discussion.course_id._id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to search replies",
+        message: "You must be enrolled in this course or be the instructor to search replies",
       });
     }
 

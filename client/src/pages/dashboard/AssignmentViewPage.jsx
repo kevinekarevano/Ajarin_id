@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Clock, FileText, Upload, CheckCircle, AlertCircle, Download, Eye, Award, Users, BookOpen, Target, Timer, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, FileText, Upload, CheckCircle, AlertCircle, Download, Eye, Award, Users, BookOpen, Target, Timer, Loader2, MessageSquare } from "lucide-react";
 
 import useAssignmentStore from "@/store/assignmentStore";
 import useCourseStore from "@/store/courseStore";
@@ -43,6 +43,27 @@ export default function AssignmentViewPage() {
           setAssignmentData(result.assignment);
           setUserSubmission(result.userSubmission);
           setCanSubmit(result.canSubmit);
+
+          // Debug: Log submission data to check feedback structure
+          if (result.userSubmission) {
+            console.log("=== SUBMISSION DEBUG ===");
+            console.log("User submission data:", result.userSubmission);
+            console.log("Submission keys:", Object.keys(result.userSubmission));
+            console.log("Grading data:", result.userSubmission.grading);
+            if (result.userSubmission.grading) {
+              console.log("Grading keys:", Object.keys(result.userSubmission.grading));
+              console.log("Grading feedback:", JSON.stringify(result.userSubmission.grading.feedback));
+              console.log("Feedback length:", result.userSubmission.grading.feedback ? result.userSubmission.grading.feedback.length : "null/undefined");
+              console.log("Feedback type:", typeof result.userSubmission.grading.feedback);
+            }
+            if (result.userSubmission.score !== undefined) {
+              console.log("Direct score:", result.userSubmission.score);
+            }
+            if (result.userSubmission.feedback) {
+              console.log("Direct feedback:", JSON.stringify(result.userSubmission.feedback));
+            }
+            console.log("=== END DEBUG ===");
+          }
         }
 
         // Fetch course details
@@ -285,35 +306,131 @@ export default function AssignmentViewPage() {
 
                 {/* Current Submission Status */}
                 {userSubmission && (
-                  <Card className="bg-slate-900/50 border-slate-600">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            {getStatusIcon(userSubmission.status)}
-                            <span className="font-medium text-white">{getStatusText(userSubmission.status)}</span>
-                          </div>
-                          {userSubmission.submitted_at && <p className="text-sm text-slate-400">Dikumpulkan: {new Date(userSubmission.submitted_at).toLocaleString("id-ID")}</p>}
-                        </div>
-                        {userSubmission.grading?.score !== null && (
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-green-400">
-                              {userSubmission.grading.score}/{assignmentData.max_points || 100}
+                  <div className="space-y-4">
+                    {/* Submission Info Card */}
+                    <Card className="bg-slate-900/50 border-slate-600">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              {getStatusIcon(userSubmission.status)}
+                              <span className="font-medium text-white">{getStatusText(userSubmission.status)}</span>
                             </div>
-                            <p className="text-sm text-slate-400">Nilai</p>
+                            {userSubmission.submitted_at && <p className="text-sm text-slate-400">Dikumpulkan: {new Date(userSubmission.submitted_at).toLocaleString("id-ID")}</p>}
+                          </div>
+                          {userSubmission.grading?.score !== null && (
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-green-400">
+                                {userSubmission.grading.score}/{assignmentData.max_points || 100}
+                              </div>
+                              <p className="text-sm text-slate-400">Nilai</p>
+                              <div className="mt-1">
+                                <Badge className="bg-green-600 text-white">{Math.round((userSubmission.grading.score / (assignmentData.max_points || 100)) * 100)}%</Badge>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Show submitted content preview */}
+                        {userSubmission.content?.text_content && (
+                          <div className="mt-4 pt-4 border-t border-slate-700">
+                            <h4 className="font-medium text-white mb-2 flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-blue-400" />
+                              Your Submission
+                            </h4>
+                            <div className="bg-slate-800/50 p-3 rounded-lg">
+                              <p className="text-slate-300 text-sm">{userSubmission.content.text_content.length > 200 ? userSubmission.content.text_content.substring(0, 200) + "..." : userSubmission.content.text_content}</p>
+                            </div>
                           </div>
                         )}
-                      </div>
 
-                      {/* Feedback */}
-                      {userSubmission.grading?.feedback && (
-                        <div className="pt-4 border-t border-slate-700">
-                          <h4 className="font-medium text-white mb-2">Feedback dari Mentor</h4>
-                          <p className="text-slate-300 bg-slate-800/50 p-3 rounded-lg">{userSubmission.grading.feedback}</p>
-                        </div>
+                        {/* Show files if any */}
+                        {userSubmission.content?.files_info && userSubmission.content.files_info.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-slate-700">
+                            <h4 className="font-medium text-white mb-2 flex items-center gap-2">
+                              <Upload className="w-4 h-4 text-blue-400" />
+                              Files Submitted ({userSubmission.content.files_info.length})
+                            </h4>
+                            <div className="grid grid-cols-1 gap-2">
+                              {userSubmission.content.files_info.slice(0, 3).map((file, index) => (
+                                <div key={index} className="flex items-center gap-2 bg-slate-800/50 p-2 rounded text-sm">
+                                  <FileText className="w-4 h-4 text-blue-400" />
+                                  <span className="text-slate-300">{file.file_name}</span>
+                                  <span className="text-slate-500 text-xs">({formatFileSize(file.file_size)})</span>
+                                </div>
+                              ))}
+                              {userSubmission.content.files_info.length > 3 && <p className="text-slate-400 text-xs">+{userSubmission.content.files_info.length - 3} file lainnya</p>}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Grading & Feedback Card - Separate and prominent */}
+                    {(userSubmission.grading || userSubmission.score !== null || userSubmission.feedback) &&
+                      (userSubmission.grading?.score !== null || userSubmission.score !== null || userSubmission.grading?.feedback || userSubmission.feedback) && (
+                        <Card className="bg-gradient-to-r from-green-900/20 to-blue-900/20 border-green-500/30">
+                          <CardHeader>
+                            <CardTitle className="text-white flex items-center gap-2">
+                              <Award className="w-5 h-5 text-yellow-400" />
+                              Penilaian dari Mentor
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {/* Score Display */}
+                            {(userSubmission.grading?.score !== null || userSubmission.score !== null) && (
+                              <div className="flex items-center justify-between p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                                <div>
+                                  <h4 className="font-semibold text-green-400 mb-1">Nilai Anda</h4>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-3xl font-bold text-white">{userSubmission.grading?.score || userSubmission.score}</span>
+                                    <span className="text-xl text-slate-400">/ {assignmentData.max_points || 100}</span>
+                                    <Badge className="bg-green-600 text-white text-sm">{Math.round(((userSubmission.grading?.score || userSubmission.score) / (assignmentData.max_points || 100)) * 100)}%</Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
+                                  <p className="text-sm text-green-400 font-medium">Dinilai</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Feedback Section */}
+                            {((userSubmission.grading?.feedback && userSubmission.grading.feedback.trim()) || (userSubmission.feedback && userSubmission.feedback.trim())) && (
+                              <div className="space-y-3">
+                                <h4 className="font-semibold text-white flex items-center gap-2">
+                                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                                  Komentar & Feedback Mentor
+                                </h4>
+                                <div className="bg-slate-800/50 p-4 rounded-lg border-l-4 border-blue-500">
+                                  <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{userSubmission.grading?.feedback || userSubmission.feedback || "Tidak ada feedback"}</p>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-slate-400">
+                                  <Clock className="w-4 h-4" />
+                                  <span>
+                                    Dinilai pada:{" "}
+                                    {userSubmission.grading?.graded_at
+                                      ? new Date(userSubmission.grading.graded_at).toLocaleString("id-ID")
+                                      : userSubmission.graded_at
+                                      ? new Date(userSubmission.graded_at).toLocaleString("id-ID")
+                                      : new Date(userSubmission.submitted_at).toLocaleString("id-ID")}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* If graded but no feedback */}
+                            {(userSubmission.grading?.score !== null || userSubmission.score !== null) &&
+                              !((userSubmission.grading?.feedback && userSubmission.grading.feedback.trim()) || (userSubmission.feedback && userSubmission.feedback.trim())) && (
+                                <div className="text-center py-4">
+                                  <MessageSquare className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                                  <p className="text-slate-400 text-sm">Mentor belum memberikan komentar untuk submission ini</p>
+                                </div>
+                              )}
+                          </CardContent>
+                        </Card>
                       )}
-                    </CardContent>
-                  </Card>
+                  </div>
                 )}
 
                 {/* No submission yet */}

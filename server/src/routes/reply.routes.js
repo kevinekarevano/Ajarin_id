@@ -11,21 +11,21 @@ router.use(authenticate);
 router.get("/user/replies", getUserReplies);
 
 // Discussion replies
-router.post("/discussions/:discussionId/replies", createReply);
+router.post("/discussion/:discussionId", createReply);
 
 // Search replies in discussion
-router.get("/discussions/:discussionId/replies/search", searchReplies);
+router.get("/discussion/:discussionId/search", searchReplies);
 
 // Single reply operations
-router.put("/replies/:replyId", updateReply);
-router.delete("/replies/:replyId", deleteReply);
+router.put("/:replyId", updateReply);
+router.delete("/:replyId", deleteReply);
 
 // Reply interactions
-router.post("/replies/:replyId/like", toggleLikeReply);
-router.post("/replies/:replyId/best-answer", markAsBestAnswer);
-router.delete("/replies/:replyId/best-answer", unmarkAsBestAnswer);
+router.post("/:replyId/like", toggleLikeReply);
+router.post("/:replyId/best-answer", markAsBestAnswer);
+router.delete("/:replyId/best-answer", unmarkAsBestAnswer);
 
 // Nested replies
-router.get("/replies/:replyId/nested", getNestedReplies);
+router.get("/:replyId/nested", getNestedReplies);
 
 export default router;

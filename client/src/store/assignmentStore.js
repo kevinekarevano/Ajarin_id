@@ -324,7 +324,7 @@ const useAssignmentStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
 
-      const response = await api.post(`/assignments/submissions/${submissionId}/grade`, gradeData);
+      const response = await api.post(`/assignments/submission/${submissionId}/grade`, gradeData);
 
       if (response.data.success) {
         // Update submission in list

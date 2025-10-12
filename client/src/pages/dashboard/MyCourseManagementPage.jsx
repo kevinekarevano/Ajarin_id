@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BookOpen, Users, Clock, Star, Plus, Edit, Trash2, Eye, Upload, Search, Filter, MoreVertical, Calendar, TrendingUp, Award, Settings, Archive, AlertTriangle, FileText } from "lucide-react";
+import { BookOpen, Users, Clock, Star, Plus, Edit, Trash2, Eye, Upload, Search, Filter, MoreVertical, Calendar, TrendingUp, Award, Settings, Archive, AlertTriangle, FileText, MessageCircle } from "lucide-react";
 import useAuthStore from "@/store/authStore";
 import useCourseStore from "@/store/courseStore";
 import { CoursesGridSkeleton, CourseError, EmptyCoursesState } from "@/components/course/CourseStates";
@@ -551,7 +551,7 @@ export default function MyCourseManagementPage() {
                   </div>
 
                   {/* Secondary Actions */}
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
                     <Button
                       size="sm"
                       variant="ghost"
@@ -562,6 +562,18 @@ export default function MyCourseManagementPage() {
                       <span className="text-[10px]">{(course.total_assignments || course.total_tasks || 0) > 0 ? `${course.total_assignments || course.total_tasks} Task` : "Assignment"}</span>
                     </Button>
 
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-400 hover:text-orange-300 hover:bg-orange-900/20 transition-all duration-200 text-xs p-2"
+                      onClick={() => navigate(`/dashboard/courses/${course._id || course.id}/discussions`)}
+                    >
+                      <MessageCircle className="w-3 h-3 mb-0.5" />
+                      <span className="text-[10px]">Diskusi</span>
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5">
                     <Button size="sm" variant="ghost" className="text-slate-400 hover:text-blue-300 hover:bg-blue-900/20 transition-all duration-200 text-xs p-2" onClick={() => openEditDialog(course)}>
                       <Edit className="w-3 h-3 mb-0.5" />
                       <span className="text-[10px]">Edit</span>

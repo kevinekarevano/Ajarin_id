@@ -461,7 +461,7 @@ export const gradeSubmission = async (req, res) => {
       score: parseInt(score),
       max_points: submission.assignment_id.max_points || 100,
       letter_grade: letter_grade || null,
-      comments: comments || "",
+      feedback: comments || "",
       graded_by: mentorId,
       graded_at: new Date(),
     };

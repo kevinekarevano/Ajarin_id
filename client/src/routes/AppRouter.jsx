@@ -18,7 +18,11 @@ import AssignmentDashboardPage from "@/pages/dashboard/AssignmentDashboardPage";
 import CourseLearnPage from "@/pages/dashboard/CourseLearnPage";
 import StudentAssignmentSubmissionPage from "@/pages/dashboard/StudentAssignmentSubmissionPage";
 import AssignmentViewPage from "@/pages/dashboard/AssignmentViewPage";
+import AssignmentSubmissionsPage from "@/pages/dashboard/AssignmentSubmissionsPage";
 import CourseDetailDashboardPage from "@/pages/dashboard/CourseDetailDashboardPage";
+import CourseDiscussionsPage from "@/pages/dashboard/CourseDiscussionsPage";
+import MyCertificatesPage from "@/pages/dashboard/MyCertificatesPage";
+import PublicCertificatePage from "@/pages/PublicCertificatePage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AuthRoute from "@/components/AuthRoute";
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -49,6 +53,9 @@ const AppRouter = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
 
+        {/* Public Certificate Route */}
+        <Route path="/certificate/:certificateId" element={<PublicCertificatePage />} />
+
         {/* Dashboard Routes */}
         <Route
           path="/dashboard"
@@ -69,7 +76,10 @@ const AppRouter = () => {
           <Route path="courses/:courseId/materials/:materialId" element={<MaterialViewPage />} />
           <Route path="courses/:courseId/assignments" element={<AssignmentDashboardPage />} />
           <Route path="courses/:courseId/assignments/:assignmentId" element={<AssignmentViewPage />} />
+          <Route path="courses/:courseId/assignments/:assignmentId/submissions" element={<AssignmentSubmissionsPage />} />
+          <Route path="courses/:courseId/discussions" element={<CourseDiscussionsPage />} />
           <Route path="courses/:courseId/assignments/:assignmentId/submit" element={<StudentAssignmentSubmissionPage />} />
+          <Route path="certificates" element={<MyCertificatesPage />} />
           <Route path="assignments" element={<div className="text-white p-6">Assignments Page - Coming Soon</div>} />
           <Route path="progress" element={<div className="text-white p-6">Progress Page - Coming Soon</div>} />
           <Route path="my-teaching" element={<div className="text-white p-6">My Teaching Page - Coming Soon</div>} />

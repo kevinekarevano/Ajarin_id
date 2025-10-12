@@ -176,6 +176,14 @@ export function DashboardSidebar() {
                         </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild isActive={isActiveLink("/dashboard/certificates")}>
+                        <Link to="/dashboard/certificates">
+                          <Award className="w-4 h-4" />
+                          <span>Sertifikat Saya</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>

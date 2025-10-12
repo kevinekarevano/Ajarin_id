@@ -4,23 +4,123 @@ import Course from "../models/course.model.js";
 import Enrollment from "../models/enrollment.model.js";
 import Material from "../models/material.model.js";
 
+// Get course discussions for mentor (simplified access)
+export const getMentorCourseDiscussions = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { type = "all", search, sortBy = "last_reply", page = 1, limit = 20 } = req.query;
+
+    console.log("🔍 Checking mentor access for:", { courseId, userId: req.user.userId });
+
+    // Check if user is the mentor of this course
+    const course = await Course.findById(courseId);
+
+    if (!course || String(course.mentor_id) !== String(req.user.userId)) {
+      console.log("❌ Access denied:", {
+        courseFound: !!course,
+        courseMentorId: course?.mentor_id,
+        userId: req.user.userId,
+        match: course ? String(course.mentor_id) === String(req.user.userId) : false,
+      });
+      return res.status(403).json({
+        success: false,
+        message: "You are not the mentor of this course",
+      });
+    }
+
+    console.log("✅ Access granted for mentor");
+
+    // Get discussions with pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    const discussions = await Discussion.getCourseDiscussions(courseId, {
+      type,
+      search,
+      sortBy,
+      page: pageNum,
+      limit: limitNum,
+    });
+
+    // Get total count for pagination
+    const filter = { course_id: courseId };
+    if (type && type !== "all") {
+      filter.type = type;
+    }
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const totalDiscussions = await Discussion.countDocuments(filter);
+    const totalPages = Math.ceil(totalDiscussions / limitNum);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        discussions: discussions,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: totalPages,
+          totalDiscussions: totalDiscussions,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1,
+        },
+        course: {
+          _id: course._id,
+          title: course.title,
+          total_enrollments: course.total_enrollments,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Get mentor course discussions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve discussions",
+      error: error.message,
+    });
+  }
+};
+
+// Helper function to check if user has access to course (either enrolled or is the instructor)
+const checkCourseAccess = async (userId, courseId) => {
+  // Check if user is enrolled in the course
+  const enrollment = await Enrollment.findOne({
+    learner_id: userId,
+    course_id: courseId,
+    status: "active",
+  });
+
+  if (enrollment) {
+    return { hasAccess: true, role: "student" };
+  }
+
+  // Check if user is the instructor of the course
+  const course = await Course.findOne({
+    _id: courseId,
+    mentor_id: userId,
+  });
+
+  if (course) {
+    return { hasAccess: true, role: "instructor" };
+  }
+
+  return { hasAccess: false, role: null };
+};
+
 // Get all discussions for a course
 export const getCourseDiscussions = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { type = "all", search, sortBy = "last_reply", page = 1, limit = 20 } = req.query;
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: courseId,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, courseId);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to view discussions",
+        message: "You must be enrolled in this course or be the instructor to view discussions",
       });
     }
 
@@ -98,22 +198,18 @@ export const getDiscussion = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: discussion.course_id._id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, discussion.course_id._id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to view this discussion",
+        message: "You must be enrolled in this course or be the instructor to view this discussion",
       });
     }
 
     // Increment view count (but not for the author)
-    if (discussion.author_id._id.toString() !== req.user.id) {
+    if (discussion.author_id._id.toString() !== req.user.userId) {
       await discussion.incrementView();
     }
 
@@ -145,7 +241,7 @@ export const getDiscussion = async (req, res) => {
     const totalPages = Math.ceil(totalReplies / limit);
 
     // Check if user liked the discussion
-    const isLiked = discussion.isLikedBy(req.user.id);
+    const isLiked = discussion.isLikedBy(req.user.userId);
 
     res.status(200).json({
       success: true,
@@ -165,9 +261,9 @@ export const getDiscussion = async (req, res) => {
         },
         user_permissions: {
           can_reply: !discussion.is_locked,
-          can_edit: discussion.author_id._id.toString() === req.user.id,
-          can_delete: discussion.author_id._id.toString() === req.user.id || discussion.course_id.mentor_id.toString() === req.user.id,
-          can_moderate: discussion.course_id.mentor_id.toString() === req.user.id,
+          can_edit: discussion.author_id._id.toString() === req.user.userId,
+          can_delete: discussion.author_id._id.toString() === req.user.userId || discussion.course_id.mentor_id.toString() === req.user.userId,
+          can_moderate: discussion.course_id.mentor_id.toString() === req.user.userId,
         },
       },
     });
@@ -195,17 +291,13 @@ export const createDiscussion = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: courseId,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, courseId);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to create discussions",
+        message: "You must be enrolled in this course or be the instructor to create discussions",
       });
     }
 
@@ -224,7 +316,7 @@ export const createDiscussion = async (req, res) => {
     // Create discussion
     const discussion = new Discussion({
       course_id: courseId,
-      author_id: req.user.id,
+      author_id: req.user.userId,
       material_id: materialExists ? material_id : null,
       title: title.trim(),
       content: content.trim(),
@@ -271,7 +363,7 @@ export const updateDiscussion = async (req, res) => {
     }
 
     // Check if user owns the discussion
-    if (discussion.author_id.toString() !== req.user.id) {
+    if (discussion.author_id.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "You can only edit your own discussions",
@@ -321,7 +413,7 @@ export const deleteDiscussion = async (req, res) => {
     }
 
     // Check if user can delete (author or mentor)
-    const canDelete = discussion.author_id.toString() === req.user.id || discussion.course_id.mentor_id.toString() === req.user.id;
+    const canDelete = discussion.author_id.toString() === req.user.userId || discussion.course_id.mentor_id.toString() === req.user.userId;
 
     if (!canDelete) {
       return res.status(403).json({
@@ -364,25 +456,21 @@ export const toggleLikeDiscussion = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: discussion.course_id,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, discussion.course_id);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to like discussions",
+        message: "You must be enrolled in this course or be the instructor to like discussions",
       });
     }
 
     // Toggle like
-    await discussion.toggleLike(req.user.id);
+    await discussion.toggleLike(req.user.userId);
 
     // Check if now liked
-    const isLiked = discussion.isLikedBy(req.user.id);
+    const isLiked = discussion.isLikedBy(req.user.userId);
 
     res.status(200).json({
       success: true,
@@ -417,7 +505,7 @@ export const togglePinDiscussion = async (req, res) => {
     }
 
     // Check if user is mentor
-    if (discussion.course_id.mentor_id.toString() !== req.user.id) {
+    if (discussion.course_id.mentor_id.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "Only mentors can pin discussions",
@@ -463,7 +551,7 @@ export const toggleLockDiscussion = async (req, res) => {
     }
 
     // Check if user is mentor
-    if (discussion.course_id.mentor_id.toString() !== req.user.id) {
+    if (discussion.course_id.mentor_id.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "Only mentors can lock discussions",
@@ -509,7 +597,7 @@ export const markAsResolved = async (req, res) => {
     }
 
     // Check if user owns the discussion
-    if (discussion.author_id.toString() !== req.user.id) {
+    if (discussion.author_id.toString() !== req.user.userId) {
       return res.status(403).json({
         success: false,
         message: "Only the discussion author can mark it as resolved",
@@ -556,17 +644,13 @@ export const searchDiscussions = async (req, res) => {
       });
     }
 
-    // Check if user is enrolled in the course
-    const enrollment = await Enrollment.findOne({
-      user_id: req.user.id,
-      course_id: courseId,
-      status: "active",
-    });
+    // Check if user has access to the course
+    const { hasAccess, role } = await checkCourseAccess(req.user.userId, courseId);
 
-    if (!enrollment) {
+    if (!hasAccess) {
       return res.status(403).json({
         success: false,
-        message: "You must be enrolled in this course to search discussions",
+        message: "You must be enrolled in this course or be the instructor to search discussions",
       });
     }
 
@@ -596,7 +680,7 @@ export const getUserDiscussions = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    const discussions = await Discussion.getUserDiscussions(req.user.id, parseInt(limit));
+    const discussions = await Discussion.getUserDiscussions(req.user.userId, parseInt(limit));
 
     res.status(200).json({
       success: true,

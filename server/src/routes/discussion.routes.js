@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getCourseDiscussions,
+  getMentorCourseDiscussions,
   getDiscussion,
   createDiscussion,
   updateDiscussion,
@@ -26,18 +27,21 @@ router.get("/user/discussions", getUserDiscussions);
 router.get("/course/:courseId/discussions", getCourseDiscussions);
 router.post("/course/:courseId/discussions", createDiscussion);
 
+// Mentor course discussions (simplified access)
+router.get("/mentor/course/:courseId/discussions", getMentorCourseDiscussions);
+
 // Search discussions in course
 router.get("/course/:courseId/discussions/search", searchDiscussions);
 
 // Single discussion operations
-router.get("/discussions/:discussionId", getDiscussion);
-router.put("/discussions/:discussionId", updateDiscussion);
-router.delete("/discussions/:discussionId", deleteDiscussion);
+router.get("/:discussionId", getDiscussion);
+router.put("/:discussionId", updateDiscussion);
+router.delete("/:discussionId", deleteDiscussion);
 
 // Discussion interactions
-router.post("/discussions/:discussionId/like", toggleLikeDiscussion);
-router.post("/discussions/:discussionId/pin", togglePinDiscussion);
-router.post("/discussions/:discussionId/lock", toggleLockDiscussion);
-router.post("/discussions/:discussionId/resolve", markAsResolved);
+router.post("/:discussionId/like", toggleLikeDiscussion);
+router.post("/:discussionId/pin", togglePinDiscussion);
+router.post("/:discussionId/lock", toggleLockDiscussion);
+router.post("/:discussionId/resolve", markAsResolved);
 
 export default router;
