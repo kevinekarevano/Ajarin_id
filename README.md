@@ -28,7 +28,7 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
    ```bash
    cd server
    npm install
-   cp .env.example .env
+   touch .env
    # Edit .env dengan konfigurasi database dan API keys
    npm run dev
    ```
@@ -38,14 +38,14 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
    ```bash
    cd client
    npm install
-   cp .env.example .env
+   touch .env
    # Edit .env dengan konfigurasi database dan API keys
    npm run dev
    ```
 
 4. **Open Browser**
    - Frontend: `http://localhost:5173`
-   - Backend: `http://localhost:5000`
+   - Backend: `http://localhost:3000`
 
 ### Environment Variables
 
@@ -64,7 +64,7 @@ CLOUDINARY_API_SECRET=your_cloudinary_secret
 
 ```env
 (For hackathon judgje, pls see the gdrive folder)
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ## 💻 Tech Stack
@@ -79,13 +79,13 @@ VITE_API_URL=http://localhost:5000/api
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ```
-Mentor Account:
-Email: mentor@ajarin.id
-Password: mentor123
+Akun 1:
+Email: user1@gmail.com
+Password: 12345678
 
-Student Account:
-Email: student@ajarin.id
-Password: student123
+Akun 2
+Email: user2@gmail.com
+Password: 12345678
 ```
 
 ## 🛠️ Tech Stack
@@ -125,7 +125,7 @@ Password: student123
 Pastikan Anda telah menginstall:
 
 - **Node.js** (v16 atau lebih tinggi)
-- **npm** atau **yarn**
+- **npm** 
 - **Git**
 - **MongoDB** (local) atau akun **MongoDB Atlas**
 - **Cloudinary** account untuk image storage
