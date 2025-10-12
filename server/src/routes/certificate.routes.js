@@ -31,8 +31,8 @@ router.get("/debug/completion/:courseId", async (req, res) => {
     const { courseId } = req.params;
     const userId = req.user.userId;
 
-    const Material = await import("../models/material.model.js").then(m => m.default);
-    const MaterialProgress = await import("../models/materialProgress.model.js").then(m => m.default);
+    const Material = await import("../models/material.model.js").then((m) => m.default);
+    const MaterialProgress = await import("../models/materialProgress.model.js").then((m) => m.default);
 
     const materials = await Material.find({ course_id: courseId }).sort({ order: 1 });
     const progressRecords = await MaterialProgress.find({
@@ -47,18 +47,18 @@ router.get("/debug/completion/:courseId", async (req, res) => {
       debug: {
         courseId,
         userId,
-        materials: materials.map(m => ({ id: m._id, title: m.title, order: m.order })),
-        progressRecords: progressRecords.map(p => ({ 
-          material_id: p.material_id, 
+        materials: materials.map((m) => ({ id: m._id, title: m.title, order: m.order })),
+        progressRecords: progressRecords.map((p) => ({
+          material_id: p.material_id,
           is_completed: p.is_completed,
-          completed_at: p.completed_at
+          completed_at: p.completed_at,
         })),
         summary: {
           totalMaterials: materials.length,
           completedMaterials: completedMaterials.length,
-          completionPercentage: Math.round((completedMaterials.length / materials.length) * 100)
-        }
-      }
+          completionPercentage: Math.round((completedMaterials.length / materials.length) * 100),
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

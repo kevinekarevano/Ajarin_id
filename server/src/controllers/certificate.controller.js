@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 const checkCourseCompletion = async (userId, courseId) => {
   try {
     console.log("🔍 Checking course completion for:", { userId, courseId });
-    
+
     // Get course materials
     const materials = await Material.find({ course_id: courseId }).sort({ order: 1 });
     console.log("📚 Found materials:", materials.length);
@@ -35,7 +35,7 @@ const checkCourseCompletion = async (userId, courseId) => {
       totalMaterials: materials.length,
       completedMaterials: completedMaterials.length,
       completionPercentage,
-      isCompleted: completionPercentage === 100
+      isCompleted: completionPercentage === 100,
     });
 
     // Debug: Show individual progress
@@ -127,7 +127,7 @@ export const generateCertificate = async (req, res) => {
     // Generate unique certificate number and public URL
     const certificateNumber = `CERT-${Date.now()}-${nanoid(8)}`;
     const certificateId = nanoid(16);
-    const publicUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/certificate/${certificateId}`;
+    const publicUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/certificate/${certificateId}`;
 
     // Create certificate
     const certificate = new Certificate({

@@ -498,16 +498,12 @@ export default function CourseLearnPage() {
                       ) : (
                         // Fallback: Manual check button
                         <div className="space-y-2">
-                          <Button 
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold" 
-                            onClick={checkCertificate}
-                            disabled={certificateLoading}
-                          >
+                          <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold" onClick={checkCertificate} disabled={certificateLoading}>
                             <Award className="w-4 h-4 mr-2" />
                             Check Certificate Eligibility
                           </Button>
                           <div className="text-xs text-slate-500 text-center">
-                            Debug: Progress {calculateProgressPercentage()}% | Eligibility: {certificateEligibility ? JSON.stringify(certificateEligibility) : 'null'}
+                            Debug: Progress {calculateProgressPercentage()}% | Eligibility: {certificateEligibility ? JSON.stringify(certificateEligibility) : "null"}
                           </div>
                         </div>
                       )}
