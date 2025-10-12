@@ -147,9 +147,7 @@ Pastikan Anda telah menginstall:
    ```
    N8N akan berjalan di http://localhost:5678
 
-### Import Workflow N8N
-
-1. **Import Workflow from /n8n/**
+3. **Import Workflow from /n8n/**
 
    ```bash
    1. Buka dashboard N8N di browser: http://localhost:5678
@@ -162,5 +160,11 @@ Pastikan Anda telah menginstall:
    * Simple Memory
    * HTTP Request
    ```
+   
+4. **Edit file index.html di bagian webhookUrl**
 
+   ```bash
+   webhookUrl: 'webhookanda'
+   ```
+   Ganti dengan URL webhook milik instance N8N kamu sendiri.
 
