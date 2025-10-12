@@ -5,7 +5,8 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
 ## � Live Demo
 
 - **Frontend**: [https://ajarin-id.vercel.app](https://ajarin-id.vercel.app)
-- **Backend API**: [https://ajarinid-api.vercel.app](https://ajarinid-api.vercel.app) 
+- **Backend API**: [https://ajarinid-api.vercel.app](https://ajarinid-api.vercel.app)
+
 
 ## 🚀 Quick Start
 
@@ -13,6 +14,7 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
 
 - Node.js 
 - MongoDB (local atau MongoDB Atlas)
+- n8n
 
 ### Installation
 
