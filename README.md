@@ -38,6 +38,8 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
    ```bash
    cd client
    npm install
+   cp .env.example .env
+   # Edit .env dengan konfigurasi database dan API keys
    npm run dev
    ```
 
@@ -47,9 +49,10 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
 
 ### Environment Variables
 
-**Backend (.env)**
+**Server (.env)**
 
 ```env
+For hackathon judgje, pls see the gdrive folder
 MONGODB_URI=mongodb://localhost:27017/ajarin_id
 JWT_SECRET=your_jwt_secret
 CLOUDINARY_CLOUD_NAME=your_cloudinary_name
@@ -57,9 +60,10 @@ CLOUDINARY_API_KEY=your_cloudinary_key
 CLOUDINARY_API_SECRET=your_cloudinary_secret
 ```
 
-**Frontend (.env)**
+**Client (.env)**
 
 ```env
+(For hackathon judgje, pls see the gdrive folder)
 VITE_API_URL=http://localhost:5000/api
 ```
 
