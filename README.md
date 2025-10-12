@@ -76,9 +76,7 @@ VITE_API_URL=http://localhost:3000/api
 - **Deployment**: Vercel (Frontend), Railway (Backend)
 - **Storage**: Cloudinary (File Upload)
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+## 🔒 Account
 
 ```
 Akun 1:
