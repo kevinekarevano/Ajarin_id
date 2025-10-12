@@ -5,6 +5,9 @@ import CoursesPage from "@/pages/CoursesPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
+import TermsPage from "@/pages/TermsPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import DashboardHomePage from "@/pages/dashboard/DashboardHomePage";
 import DashboardProfilePage from "@/pages/dashboard/DashboardProfilePage";
@@ -52,6 +55,8 @@ const AppRouter = () => {
         <Route path="/courses/:id" element={<CourseDetailPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         {/* Public Certificate Route */}
         <Route path="/certificate/:certificateId" element={<PublicCertificatePage />} />
@@ -91,6 +96,9 @@ const AppRouter = () => {
           <Route path="analytics" element={<div className="text-white p-6">Analytics Page - Coming Soon</div>} />
           <Route path="settings" element={<div className="text-white p-6">Settings Page - Coming Soon</div>} />
         </Route>
+
+        {/* 404 Not Found - must be last */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

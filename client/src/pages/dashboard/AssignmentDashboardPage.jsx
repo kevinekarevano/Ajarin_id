@@ -75,17 +75,8 @@ export function AssignmentDashboardPage() {
     );
   }
 
-  // Determine user role - default to mentor for testing
-  const userRole = selectedCourse?.mentor?._id === user._id ? "mentor" : isInMyCourses ? "mentor" : "mentor"; // Default to mentor for testing
-
-  console.log("Assignment Dashboard Debug:", {
-    courseId,
-    selectedCourse: selectedCourse ? selectedCourse.title : null,
-    userRole,
-    hasAccess,
-    isInMyCourses,
-    coursesCount: courses.length,
-  });
+  // Determine user role
+  const userRole = selectedCourse?.mentor_id?._id === user._id || selectedCourse?.mentor_id === user._id ? "mentor" : "student";
 
   // Create a fallback course object if needed
   const courseToUse = selectedCourse || {
@@ -96,32 +87,6 @@ export function AssignmentDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info */}
-      <div className="mb-4 p-4 bg-slate-800/50 rounded border border-slate-600 text-white text-sm">
-        <h3 className="font-bold mb-2">🔧 Debug Info:</h3>
-        <p>
-          <strong>Course ID:</strong> {courseId}
-        </p>
-        <p>
-          <strong>Selected Course:</strong> {selectedCourse ? selectedCourse.title : "Fallback Used"}
-        </p>
-        <p>
-          <strong>User Role:</strong> {userRole}
-        </p>
-        <p>
-          <strong>Loading:</strong> {loading.toString()}
-        </p>
-        <p>
-          <strong>Total Courses:</strong> {courses.length}
-        </p>
-        <p>
-          <strong>Has Access:</strong> {hasAccess.toString()}
-        </p>
-        <p>
-          <strong>Is In My Courses:</strong> {isInMyCourses.toString()}
-        </p>
-      </div>
-
       <AssignmentManagement course={courseToUse} userRole={userRole} />
     </div>
   );

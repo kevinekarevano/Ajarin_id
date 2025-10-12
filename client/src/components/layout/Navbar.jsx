@@ -17,6 +17,7 @@ export function Navbar() {
   ];
 
   const authenticatedNavigation = [
+    { name: "Beranda", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Kursus", href: "/courses" },
     { name: "Tentang", href: "/about" },
@@ -74,10 +75,17 @@ export function Navbar() {
             {isAuthenticated ? (
               <>
                 <div className="flex items-center space-x-3 text-white">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4" />
+                  {user?.avatar?.url ? (
+                    <img src={user.avatar.url} alt={user?.fullname || user?.username || "User"} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-semibold text-white">{(user?.fullname || user?.username || "U").charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{user?.fullname || "User"}</span>
+                    {user?.username && <span className="text-xs text-slate-400">@{user.username}</span>}
                   </div>
-                  <span className="text-sm font-medium">{user?.fullName || "User"}</span>
                 </div>
                 <Button onClick={handleLogout} variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-800">
                   <LogOut className="w-4 h-4 mr-2" />
@@ -122,10 +130,17 @@ export function Navbar() {
                 {isAuthenticated ? (
                   <>
                     <div className="flex items-center space-x-3 px-3 py-2 text-white border-b border-slate-700 pb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4" />
+                      {user?.avatar?.url ? (
+                        <img src={user.avatar.url} alt={user?.fullname || user?.username || "User"} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-base font-semibold text-white">{(user?.fullname || user?.username || "U").charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user?.fullname || "User"}</span>
+                        {user?.username && <span className="text-xs text-slate-400">@{user.username}</span>}
                       </div>
-                      <span className="text-sm font-medium">{user?.fullName || "User"}</span>
                     </div>
                     <Button onClick={handleLogout} variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 justify-start">
                       <LogOut className="w-4 h-4 mr-2" />

@@ -116,8 +116,6 @@ export default function CourseMaterialsPage() {
       chapter: material.chapter || "General",
     }));
 
-    console.log("Sending reorder data:", materialOrders);
-
     const result = await reorderMaterials(courseId, materialOrders);
 
     if (result.success) {
@@ -130,7 +128,16 @@ export default function CourseMaterialsPage() {
   };
 
   // Check if user is mentor of this course
-  const isMentor = selectedCourse && user && selectedCourse.mentor_id?._id === user._id;
+  const isMentor =
+    selectedCourse &&
+    user &&
+    // If mentor_id is populated (object with _id)
+    (selectedCourse.mentor_id?._id === user._id ||
+      // If mentor_id is just a string ID
+      selectedCourse.mentor_id === user._id ||
+      // Additional fallback checks
+      selectedCourse.instructor_id === user._id ||
+      selectedCourse.created_by === user._id);
 
   if (courseLoading) {
     return (

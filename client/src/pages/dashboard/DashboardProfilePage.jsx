@@ -1,23 +1,48 @@
-import { useState } from "react";
-import { User, Mail, Calendar, MapPin, Edit, Camera, Save, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Mail, Calendar, MapPin, Edit, Camera, Save, X, BookOpen, Award, Users, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import useAuthStore from "@/store/authStore";
+import useEnrollmentStore from "@/store/enrollmentStore";
+import useCourseStore from "@/store/courseStore";
+import toast from "react-hot-toast";
 
 export default function DashboardProfilePage() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
+  const { enrolledCourses, fetchMyEnrolledCourses } = useEnrollmentStore();
+  const { courses, fetchMyCourses } = useCourseStore();
+
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    fullname: user?.fullname || "",
-    email: user?.email || "",
-    bio: user?.bio || "",
-    location: user?.location || "",
-    website: user?.website || "",
-    skills: user?.skills || [],
+    fullname: "",
+    username: "",
+    email: "",
+    bio: "",
+    headline: "",
   });
+
+  // Fetch data when component mounts
+  useEffect(() => {
+    fetchMyEnrolledCourses();
+    fetchMyCourses();
+  }, [fetchMyEnrolledCourses, fetchMyCourses, user?._id]);
+
+  // Initialize form data when user data is available
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullname: user.fullname || "",
+        username: user.username || "",
+        email: user.email || "",
+        bio: user.bio || "",
+        headline: user.headline || "",
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -26,29 +51,49 @@ export default function DashboardProfilePage() {
     }));
   };
 
-  const handleSave = () => {
-    // Here you would typically save to backend
-    console.log("Saving profile data:", formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      const result = await updateUser(formData);
+
+      if (result.success) {
+        toast.success("Profil berhasil diperbarui!");
+        setIsEditing(false);
+      } else {
+        toast.error(result.error || "Gagal memperbarui profil");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Terjadi kesalahan saat memperbarui profil");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
-    setFormData({
-      fullname: user?.fullname || "",
-      email: user?.email || "",
-      bio: user?.bio || "",
-      location: user?.location || "",
-      website: user?.website || "",
-      skills: user?.skills || [],
-    });
+    // Reset form data to original user data
+    if (user) {
+      setFormData({
+        fullname: user.fullname || "",
+        username: user.username || "",
+        email: user.email || "",
+        bio: user.bio || "",
+        headline: user.headline || "",
+      });
+    }
     setIsEditing(false);
   };
 
+  // Calculate real statistics from API data
   const stats = {
-    coursesEnrolled: 5,
-    coursesCompleted: 2,
-    coursesCreated: 1,
-    totalStudents: 25,
+    coursesEnrolled: enrolledCourses?.length || 0,
+    coursesCompleted: enrolledCourses?.filter((enrollment) => enrollment.progress === 100 || enrollment.completed)?.length || 0,
+    coursesCreated: courses?.length || 0,
+    totalStudents:
+      courses?.reduce((total, course) => {
+        return total + (course.enrolledStudents || course.studentsCount || 0);
+      }, 0) || 0,
   };
 
   return (
@@ -60,14 +105,33 @@ export default function DashboardProfilePage() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center">
               <div className="relative">
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-4xl font-bold text-white">{user?.fullname?.charAt(0)?.toUpperCase() || "U"}</div>
-                <Button size="sm" className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700">
+                {user?.avatar?.url ? (
+                  <img src={user.avatar.url} alt={user?.fullname || user?.username || "User"} className="w-32 h-32 rounded-full object-cover shadow-xl border-4 border-slate-600" />
+                ) : (
+                  <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-xl border-4 border-slate-600">
+                    {(() => {
+                      // Generate initials from fullname or username
+                      const name = user?.fullname || user?.username || "User";
+                      const words = name.trim().split(" ");
+
+                      if (words.length >= 2) {
+                        // If multiple words, take first letter of first and last word
+                        return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+                      } else {
+                        // If single word, take first letter
+                        return words[0].charAt(0).toUpperCase();
+                      }
+                    })()}
+                  </div>
+                )}
+                <Button size="sm" className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700 shadow-lg">
                   <Camera className="w-4 h-4" />
                 </Button>
               </div>
               <div className="text-center mt-4">
-                <h2 className="text-xl font-bold text-white">{user?.fullname || "User Name"}</h2>
-                <p className="text-slate-400">{user?.role || "Student"}</p>
+                <h2 className="text-xl font-bold text-white">{user?.fullname || user?.username || "User"}</h2>
+                <p className="text-slate-400">@{user?.username || "username"}</p>
+                {user?.headline && <p className="text-slate-300 text-sm mt-1">{user.headline}</p>}
               </div>
             </div>
 
@@ -129,9 +193,20 @@ export default function DashboardProfilePage() {
                 Nama Lengkap
               </Label>
               {isEditing ? (
-                <Input id="fullname" value={formData.fullname} onChange={(e) => handleInputChange("fullname", e.target.value)} className="bg-slate-900 border-slate-700 text-white" />
+                <Input id="fullname" value={formData.fullname} onChange={(e) => handleInputChange("fullname", e.target.value)} className="bg-slate-900 border-slate-700 text-white focus:border-blue-500" placeholder="Masukkan nama lengkap" />
               ) : (
-                <div className="p-2 bg-slate-900 border border-slate-700 rounded text-white">{user?.fullname || "Belum diisi"}</div>
+                <div className="p-3 bg-slate-900 border border-slate-700 rounded text-white min-h-[42px] flex items-center">{user?.fullname || "Belum diisi"}</div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="username" className="text-slate-300">
+                Username
+              </Label>
+              {isEditing ? (
+                <Input id="username" value={formData.username} onChange={(e) => handleInputChange("username", e.target.value)} className="bg-slate-900 border-slate-700 text-white focus:border-blue-500" placeholder="username_unik" />
+              ) : (
+                <div className="p-3 bg-slate-900 border border-slate-700 rounded text-white min-h-[42px] flex items-center">@{user?.username || "username"}</div>
               )}
             </div>
 
@@ -140,31 +215,26 @@ export default function DashboardProfilePage() {
                 Email
               </Label>
               {isEditing ? (
-                <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} className="bg-slate-900 border-slate-700 text-white" />
+                <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} className="bg-slate-900 border-slate-700 text-white focus:border-blue-500" placeholder="email@example.com" />
               ) : (
-                <div className="p-2 bg-slate-900 border border-slate-700 rounded text-white">{user?.email || "Belum diisi"}</div>
+                <div className="p-3 bg-slate-900 border border-slate-700 rounded text-white min-h-[42px] flex items-center">{user?.email || "Belum diisi"}</div>
               )}
             </div>
 
             <div>
-              <Label htmlFor="location" className="text-slate-300">
-                Lokasi
+              <Label htmlFor="headline" className="text-slate-300">
+                Headline
               </Label>
               {isEditing ? (
-                <Input id="location" value={formData.location} onChange={(e) => handleInputChange("location", e.target.value)} className="bg-slate-900 border-slate-700 text-white" placeholder="Jakarta, Indonesia" />
+                <Input
+                  id="headline"
+                  value={formData.headline}
+                  onChange={(e) => handleInputChange("headline", e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white focus:border-blue-500"
+                  placeholder="Fullstack Developer | React Enthusiast"
+                />
               ) : (
-                <div className="p-2 bg-slate-900 border border-slate-700 rounded text-white">{formData.location || "Belum diisi"}</div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="website" className="text-slate-300">
-                Website
-              </Label>
-              {isEditing ? (
-                <Input id="website" value={formData.website} onChange={(e) => handleInputChange("website", e.target.value)} className="bg-slate-900 border-slate-700 text-white" placeholder="https://yourwebsite.com" />
-              ) : (
-                <div className="p-2 bg-slate-900 border border-slate-700 rounded text-white">{formData.website || "Belum diisi"}</div>
+                <div className="p-3 bg-slate-900 border border-slate-700 rounded text-white min-h-[42px] flex items-center">{user?.headline || "Belum diisi"}</div>
               )}
             </div>
           </div>
@@ -174,43 +244,92 @@ export default function DashboardProfilePage() {
               Bio
             </Label>
             {isEditing ? (
-              <Textarea id="bio" value={formData.bio} onChange={(e) => handleInputChange("bio", e.target.value)} className="bg-slate-900 border-slate-700 text-white" placeholder="Ceritakan tentang diri Anda..." rows={4} />
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
+                className="bg-slate-900 border-slate-700 text-white focus:border-blue-500"
+                placeholder="Ceritakan tentang diri Anda, pengalaman, dan keahlian yang dimiliki..."
+                rows={4}
+              />
             ) : (
-              <div className="p-2 bg-slate-900 border border-slate-700 rounded text-white min-h-[100px]">{formData.bio || "Belum diisi"}</div>
+              <div className="p-3 bg-slate-900 border border-slate-700 rounded text-white min-h-[100px] whitespace-pre-wrap">{user?.bio || "Belum diisi"}</div>
             )}
           </div>
 
           {isEditing && (
             <div className="flex justify-end gap-2 pt-4">
-              <Button onClick={handleCancel} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Button onClick={handleCancel} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700" disabled={loading}>
+                <X className="w-4 h-4 mr-2" />
                 Batal
               </Button>
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-                <Save className="w-4 h-4 mr-2" />
-                Simpan Perubahan
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Simpan Perubahan
+                  </>
+                )}
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Skills Section */}
+      {/* Learning Progress Section */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Keahlian</CardTitle>
+          <CardTitle className="text-white flex items-center gap-2">
+            <GraduationCap className="w-5 h-5" />
+            Aktivitas Pembelajaran
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {["React.js", "Node.js", "JavaScript", "Python", "UI/UX Design"].map((skill, index) => (
-              <span key={index} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
-                {skill}
-              </span>
-            ))}
-            {isEditing && (
-              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                + Tambah Keahlian
-              </Button>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Enrolled Courses */}
+            <div>
+              <h3 className="text-slate-300 font-semibold mb-3 flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Kursus yang Diikuti ({stats.coursesEnrolled})
+              </h3>
+              {enrolledCourses && enrolledCourses.length > 0 ? (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {enrolledCourses.slice(0, 5).map((enrollment, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-slate-900 rounded-lg">
+                      <span className="text-white text-sm truncate flex-1 mr-2">{enrollment.course?.title || "Kursus"}</span>
+                      <span className="text-xs text-slate-400">{enrollment.progress || 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-slate-400 text-sm p-4 text-center border border-slate-700 rounded-lg">Belum mengikuti kursus apapun</div>
+              )}
+            </div>
+
+            {/* Created Courses */}
+            <div>
+              <h3 className="text-slate-300 font-semibold mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Kursus yang Dibuat ({stats.coursesCreated})
+              </h3>
+              {courses && courses.length > 0 ? (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {courses.slice(0, 5).map((course, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-slate-900 rounded-lg">
+                      <span className="text-white text-sm truncate flex-1 mr-2">{course.title}</span>
+                      <span className="text-xs text-slate-400">{course.enrolledStudents || course.studentsCount || 0} siswa</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-slate-400 text-sm p-4 text-center border border-slate-700 rounded-lg">Belum membuat kursus apapun</div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

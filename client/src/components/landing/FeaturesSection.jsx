@@ -95,6 +95,7 @@ export function FeaturesSection() {
                 { name: "Editing", color: "bg-green-500", icon: "💻" },
                 { name: "AI", color: "bg-blue-600", icon: "🤖" },
                 { name: "Mobile Dev", color: "bg-blue-600", icon: "📱" },
+                { name: "Business", color: "bg-blue-600", icon: "💵" },
               ].map((tech, index) => (
                 <div key={index} className="flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-lg">
                   <span className="text-lg">{tech.icon}</span>

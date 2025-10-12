@@ -3,9 +3,60 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" type="image/svg+xml" href="/icons/ajarin-icon2.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ajarin.id - Belajar Bareng, Pintar Bareng</title>
+  <title>Ajarin Id - Belajar Bareng, Pintar Bareng</title>
+  <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --chat--color-primary: #2563eb;
+      /* tombol biru utama */
+      --chat--color-primary-shade-50: #1e4ed8;
+      --chat--color-primary-shade-100: #1e40af;
+      --chat--color-secondary: #3b82f6;
+      /* warna bubble user */
+      --chat--color-secondary-shade-50: #60a5fa;
+      --chat--toggle--background: #2563eb;
+      /* tombol chat */
+      --chat--toggle--hover--background: #1e40af;
+      --chat--toggle--active--background: #1e3a8a;
+    }
+  </style>
+
+  <div id="n8n-chat"></div>
+
+  <script type="module">
+    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+    createChat({
+      webhookUrl: 'https://ajarajar.app.n8n.cloud/webhook/2f6cc470-aa62-4944-9db0-c32637edb0d4/chat',
+      webhookConfig: { method: 'POST', headers: {} },
+      target: '#n8n-chat',
+      mode: 'window',
+      chatInputKey: 'chatInput',
+      chatSessionKey: 'sessionId',
+      loadPreviousSession: true,
+      metadata: {},
+      showWelcomeScreen: false,
+      defaultLanguage: 'en',
+      initialMessages: [
+        'Hallo saya asisten AI Ajar.AI! 👋',
+        'Ada yang dapat saya bantu?',
+      ],
+      i18n: {
+        en: {
+          title: 'Ajar.AI Assistant',
+          subtitle: 'Asisten Belajar Anda',
+          footer: '',
+          getStarted: 'Percakapan Baru',
+          inputPlaceholder: 'Tanyakan apa saja..',
+        },
+      },
+      enableStreaming: false,
+    });
+  </script>
+
 </head>
 
 <body class="dark bg-[#0F1624]">
