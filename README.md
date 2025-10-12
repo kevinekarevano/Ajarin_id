@@ -5,13 +5,13 @@ Platform pembelajaran online untuk kursus programming dan teknologi.
 ## � Live Demo
 
 - **Frontend**: [https://ajarin-id.vercel.app](https://ajarin-id.vercel.app)
-- **Backend API**: [https://ajarin-id-backend.up.railway.app](https://ajarin-id-backend.up.railway.app)
+- **Backend API**: [https://ajarinid-api.vercel.ap/](https://ajarinid-api.vercel.app) 
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js 
 - MongoDB (local atau MongoDB Atlas)
 
 ### Installation
@@ -87,16 +87,6 @@ Student Account:
 Email: student@ajarin.id
 Password: student123
 ```
-
-### 📸 Screenshots
-
-<!-- Add screenshots here -->
-
-![Dashboard](screenshots/dashboard.png)
-![Course Detail](screenshots/course-detail.png)
-![Certificate](screenshots/certificate.png)
-
----
 
 ## 🛠️ Tech Stack
 
