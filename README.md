@@ -142,3 +142,35 @@ Pastikan Anda telah menginstall:
 
 ---
 
+
+### N8N SETUP
+
+1. **install n8n from npm**
+
+   ```bash
+   npm install -g n8n
+   ```
+2. **run n8n**
+
+   ```bash
+   n8n
+   ```
+   N8N akan berjalan di http://localhost:5678
+
+### Import Workflow N8N
+
+1. **Import Workflow from /n8n/**
+
+   ```bash
+   1. Buka dashboard N8N di browser: http://localhost:5678
+   2. Klik Import Workflow → From File
+   3. Pilih file: n8n/ajarin.id_Workflow_N8N
+   4. Pastikan semua node termuat:
+   * When chat message received
+   * AI Agent
+   * Google Gemini Chat Model
+   * Simple Memory
+   * HTTP Request
+   ```
+
+
